@@ -13,6 +13,9 @@ base:
 
   'roles:kubernetes-pool':
     - match: grain
+{% if grains['cloud'] is defined and not grains.cloud in [ 'gce', 'gke' ] %}
+    - kube-master-dns
+{% endif %}
     - docker
 {% if pillar.get('network_provider', '').lower() == 'flannel' %}
     - flannel
@@ -56,6 +59,9 @@ base:
 
   'roles:kubernetes-master':
     - match: grain
+{% if grains['cloud'] is defined and not grains.cloud in [ 'gce', 'gke' ] %}
+    - kube-master-dns
+{% endif %}
     - etcd
 {% if pillar.get('network_provider', '').lower() == 'flannel' %}
     - flannel-server
