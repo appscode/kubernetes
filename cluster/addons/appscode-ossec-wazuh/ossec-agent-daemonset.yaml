@@ -1,0 +1,27 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: appscode-ossec-agent
+  namespace: kube-system
+  labels:
+    k8s-app: appscode-ossec-agent
+spec:
+  template:
+    metadata:
+      labels:
+        k8s-app: appscode-ossec-agent
+    spec:
+      containers:
+      - name: ossec-agent
+        image: appscode/ossec-wazuh-agent:v1.0.4
+        resources:
+          limits:
+            cpu: 100m
+        volumeMounts:
+        - name: ossec-api-secrets
+          readOnly: true
+          mountPath: /var/ossec/api/ssl
+      volumes:
+      - name: ossec-api-secrets
+        secret:
+          secretName: appscode-ossec
