@@ -42,7 +42,6 @@ base:
 
   'roles:kubernetes-master':
     - match: grain
-    - generate-cert
     - etcd
 {% if pillar.get('network_provider', '').lower() == 'kubenet' %}
     - cni
