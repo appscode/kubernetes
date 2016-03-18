@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: ganglia-v1
+  namespace: appscode
+  labels:
+    app: ganglia
+    version: v1
+    kubernetes.io/cluster-service: "true"
+spec:
+  replicas: 1
+  selector:
+    app: ganglia
+    version: v1
+  template:
+    metadata:
+      annotations:
+        monitoring.appscode.com/container: ganglia
+      labels:
+        app: ganglia
+        version: v1
+        kubernetes.io/cluster-service: "true"
+    spec:
+      containers:
+      - image: appscode/ganglia-monitor:3.6
+        name: ganglia
+        resources:
+          limits:
+            cpu: 100m
+        ports:
+        - name: heapster
+          containerPort: 8649
+          hostPort: 8649
+          protocol: TCP
+        - name: sflow
+          containerPort: 6343
+          hostPort: 6343
+          protocol: UDP
+        - name: gmetric
+          containerPort: 8649
+          hostPort: 8649
+          protocol: UDP
+      terminationGracePeriodSeconds: 30
