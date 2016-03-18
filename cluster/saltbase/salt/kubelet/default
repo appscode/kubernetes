@@ -147,13 +147,7 @@
 # Don't pipe the --hairpin-mode flag by default. This allows the kubelet to pick
 # an appropriate value.
 {% set hairpin_mode = "" -%}
-# The master cannot see Services because it doesn't run kube-proxy, so we don't
-# need to make its container bridge promiscuous. We also don't want to set
-# the hairpin-veth flag on the master because it increases the chances of
-# running into the kernel bug described in #20096.
-{% if grains['roles'][0] == 'kubernetes-master' -%}
-  {% set hairpin_mode = "--hairpin-mode=none" -%}
-{% elif pillar['hairpin_mode'] is defined and pillar['hairpin_mode'] in ['promiscuous-bridge', 'hairpin-veth', 'none'] -%}
+{% if pillar['hairpin_mode'] is defined and pillar['hairpin_mode'] in ['promiscuous-bridge', 'hairpin-veth', 'none'] -%}
   {% set hairpin_mode = "--hairpin-mode=" + pillar['hairpin_mode'] -%}
 {% endif -%}
 
