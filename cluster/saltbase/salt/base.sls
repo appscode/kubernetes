@@ -5,11 +5,13 @@ pkg-core:
 {% if grains['os_family'] == 'RedHat' %}
       - python
       - git
+      - cronie
 {% else %}
       - apt-transport-https
       - python-apt
       - nfs-common
       - socat
+      - cron
 {% endif %}
 # Ubuntu installs netcat-openbsd by default, but on GCE/Debian netcat-traditional is installed.
 # They behave slightly differently.
