@@ -56,7 +56,6 @@ base:
 
   'roles:kubernetes-master':
     - match: grain
-    - generate-cert
     - etcd
 {% if pillar.get('network_provider', '').lower() == 'flannel' %}
     - flannel-server
