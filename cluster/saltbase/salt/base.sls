@@ -4,6 +4,8 @@ pkg-core:
       - curl
 # Make sure git is installed for mounting git volumes
       - git
+# Make sure enough entropy is present for unpredictable randomness
+      - haveged
 {% if grains['os_family'] == 'RedHat' %}
       - python
       - cronie
