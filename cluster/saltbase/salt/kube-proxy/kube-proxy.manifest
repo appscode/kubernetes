@@ -8,17 +8,13 @@
   {% set ips = salt['mine.get']('roles:kubernetes-master', 'network.ip_addrs', 'grain').values() -%}
   {% set api_servers = "--master=https://" + ips[0][0] -%}
 {% endif -%}
-{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'vagrant', 'vsphere' ]  %}
-  {% set api_servers_with_port = api_servers -%}
-{% else -%}
-  {% set api_servers_with_port = api_servers + ":6443" -%}
-{% endif -%}
+{% set api_servers_with_port = api_servers + ":6443" -%}
 
 {% if grains['roles'][0] == 'kubernetes-master' -%}
   {% if grains.cloud in ['aws', 'gce', 'vagrant'] -%}
     # Unless given a specific directive, disable kube-proxy on the master.
     {% if grains.kubelet_api_servers is defined -%}
-      {% set api_servers_with_port = "--master=https://" + grains.kubelet_api_servers -%}
+      {% set api_servers_with_port = "--master=https://" + grains.kubelet_api_servers  + ":6443" -%}
     {% else -%}
       {% set api_servers_with_port = "" -%}
     {% endif -%}
