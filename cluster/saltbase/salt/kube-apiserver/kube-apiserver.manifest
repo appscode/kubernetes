@@ -58,10 +58,7 @@
 {% set client_ca_file = "" -%}
 
 {% set secure_port = "6443" -%}
-{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'vagrant', 'vsphere' ]    %}
-  {% set secure_port = "443" -%}
-  {% set client_ca_file = "--client-ca-file=/srv/kubernetes/ca.crt" -%}
-{% endif -%}
+{% set client_ca_file = "--client-ca-file=/srv/kubernetes/ca.crt" -%}
 
 {% set token_auth_file = "--token-auth-file=/dev/null" -%}
 {% set basic_auth_file = "" -%}
