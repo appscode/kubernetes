@@ -1,0 +1,20 @@
+[Unit]
+Description=calicoctl node
+After=docker.service
+Requires=docker.service
+
+[Service]
+User=root
+Environment=ETCD_SCHEME=https
+Environment=ETCD_AUTHORITY={{ kubernetes_master_name }}:{{ etcd_port }}
+Environment=ETCD_CA_CERT_FILE=/srv/kubernetes/ca.crt
+Environment=ETCD_CERT_FILE=/srv/etcd/client/client.crt
+Environment=ETCD_KEY_FILE=/srv/etcd/client/client.key
+PermissionsStartOnly=true
+ExecStart=/usr/bin/calicoctl node --detach=false
+ExecStartPost=/usr/bin/calicoctl pool add 192.168.0.0/16 --nat-outgoing
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

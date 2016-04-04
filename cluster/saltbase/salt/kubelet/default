@@ -137,6 +137,11 @@
   {% if reconcile_cidr_args == '' -%}
     {% set reconcile_cidr_args =  "--reconcile-cidr=true" -%}
   {% endif -%}
+{% elif pillar.get('network_provider', '').lower() == 'calico' %}
+  {% set network_plugin = "--network-plugin=cni --network-plugin-dir=/etc/cni/net.d" %}
+  {% set configure_cbr0 = "" -%}
+  {% set reconcile_cidr_args = "" -%}
+  {% set pod_cidr = "" %}
 {% endif -%}
 
 # Don't pipe the --hairpin-mode flag by default. This allows the kubelet to pick
