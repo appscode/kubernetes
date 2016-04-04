@@ -22,6 +22,8 @@ base:
     - flannel
 {% elif pillar.get('network_provider', '').lower() == 'kubenet' %}
     - cni
+{% elif pillar.get('network_provider', '').lower() == 'calico' %}
+    - calico
 {% endif %}
     - helpers
     - cadvisor
@@ -56,6 +58,8 @@ base:
     - flannel
 {% elif pillar.get('network_provider', '').lower() == 'kubenet' %}
     - cni
+{% elif pillar.get('network_provider', '').lower() == 'calico' %}
+    - calico
 {% endif %}
     - kube-apiserver
     - kube-controller-manager
