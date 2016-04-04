@@ -1,0 +1,95 @@
+{
+    "kind": "Pod",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "calico",
+        "namespace": "kube-system",
+        "labels": {
+            "app": "calico",
+            "version": "v0.1"
+        }
+    },
+    "spec": {
+        "hostNetwork": true,
+        "containers": [
+            {
+                "name": "etcd-container",
+                "image": "gcr.io/google_containers/etcd:2.2.1",
+                "resources": {
+                    "requests": {
+                        "cpu": {{ cpulimit }}
+                    }
+                },
+                "command": [
+                    "/bin/sh",
+                    "-c",
+                    "/usr/local/bin/etcd --data-dir=/var/etcd/data-calico --initial-advertise-peer-urls=http://127.0.0.1:{{ etcd_peer_port }} --initial-cluster='default=http://127.0.0.1:{{ etcd_peer_port }}' --listen-peer-urls=http://127.0.0.1:{{ etcd_peer_port }} --listen-client-urls=https://{{ etcd_host }}:{{ etcd_port }},http://127.0.0.1:{{ etcd_port }} --advertise-client-urls=https://{{ etcd_host }}:{{ etcd_port }} --client-cert-auth=true --trusted-ca-file=/srv/kubernetes/ca.crt --cert-file=/srv/etcd/client/server.crt --key-file=/srv/etcd/client/server.key 1>>/var/log/etcd-calico.log 2>&1"
+                ],
+                "livenessProbe": {
+                    "httpGet": {
+                        "host": "127.0.0.1",
+                        "port": {{ etcd_port }},
+                        "path": "/health"
+                    },
+                    "initialDelaySeconds": 60,
+                    "timeoutSeconds": 15
+                },
+                "ports": [
+                    {
+                        "name": "serverport",
+                        "containerPort": {{ etcd_peer_port }},
+                        "hostPort": {{ etcd_peer_port }}
+                    }, {
+                        "name": "clientport",
+                        "containerPort": {{ etcd_port }},
+                        "hostPort": {{ etcd_port }}
+                    }
+                ],
+                "volumeMounts": [
+                    {
+                        "name": "varlog",
+                        "mountPath": "/var/log"
+                    },
+                    {
+                        "name": "etcdstorage",
+                        "mountPath": "/var/etcd"
+                    },
+                    {
+                        "name": "cafile",
+                        "mountPath": "/srv/kubernetes/ca.crt"
+                    },
+                    {
+                        "name": "etcdcert",
+                        "mountPath": "/srv/etcd"
+                    }
+                ]
+            }
+        ],
+        "volumes": [
+            {
+                "name": "varlog",
+                "hostPath": {
+                    "path": "/var/log"
+                }
+            },
+            {
+                "name": "cafile",
+                "hostPath": {
+                    "path": "/srv/kubernetes/ca.crt"
+                }
+            },
+            {
+                "name": "etcdcert",
+                "hostPath": {
+                    "path": "/srv/etcd"
+                }
+            },
+            {
+                "name": "etcdstorage",
+                "hostPath": {
+                    "path": "/mnt/master-pd/var/etcd"
+                }
+            }
+        ]
+    }
+}
