@@ -1,0 +1,94 @@
+{
+    "kind": "Pod",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "strongswan",
+        "namespace": "kube-system",
+        "labels": {
+            "app": "strongswan",
+            "version": "v0.1"
+        }
+    },
+    "spec": {
+        "hostNetwork": true,
+        "containers": [
+            {
+                "name": "strongswan",
+                "image": "appscode/strongswan:5.2.1",
+                "env": [
+                  {
+                    "name": "HOSTNAME",
+                    "value": "{{ fqdn }}"
+                  },
+                  {
+                    "name": "IP",
+                    "value": "{{ internal_ip }}"
+                  },
+                  {
+                    "name": "VPN_PSK",
+                    "value": "{{ vpn_psk }}"
+                  },
+                  {
+                    "name": "ETCD_ENDPOINT",
+                    "value": "https://{{ etcd_host }}:{{ etcd_port }}"
+                  }
+                ],
+                "securityContext": {
+                  "privileged": true
+                },
+                "resources": {
+                    "requests": {
+                        "cpu": {{ cpulimit }}
+                    }
+                },
+                "volumeMounts": [
+                    {
+                        "name": "libmodules",
+                        "mountPath": "/lib/modules"
+                    },
+                    {
+                        "name": "modprobe",
+                        "mountPath": "/sbin/modprobe"
+                    },
+                    {
+                        "name": "cafile",
+                        "mountPath": "/srv/kubernetes/ca.crt",
+                        "readOnly": true
+                    },
+                    {
+                        "name": "etcdcert",
+                        "mountPath": "/srv/etcd",
+                        "readOnly": true
+                    }
+                ],
+                "imagePullPolicy": "Always"
+            }
+        ],
+        "volumes": [
+            {
+                "name": "libmodules",
+                "hostPath": {
+                    "path": "/lib/modules"
+                }
+            },
+            {
+                "name": "modprobe",
+                "hostPath": {
+                    "path": "/sbin/modprobe"
+                }
+            },
+            {
+                "name": "cafile",
+                "hostPath": {
+                    "path": "/srv/kubernetes/ca.crt"
+                }
+            },
+            {
+                "name": "etcdcert",
+                "hostPath": {
+                    "path": "/srv/etcd"
+                }
+            }
+        ]
+    }
+}
