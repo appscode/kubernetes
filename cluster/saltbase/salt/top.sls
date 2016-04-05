@@ -18,6 +18,9 @@ base:
     - kube-master-dns
 {% endif %}
     - docker
+{% if pillar.get('enable_cluster_vpn', '').lower() == 'h2h-psk' %}
+    - strongswan-h2h-psk
+{% endif %}
 {% if pillar.get('network_provider', '').lower() == 'flannel' %}
     - flannel
 {% endif %}
@@ -100,6 +103,9 @@ base:
 {% if grains['cloud'] is defined and grains['cloud'] in [ 'vagrant', 'gce', 'aws', 'vsphere', 'photon-controller', 'openstack', 'azure-legacy'] %}
     - docker
     - kubelet
+{% endif %}
+{% if pillar.get('enable_cluster_vpn', '').lower() == 'h2h-psk' %}
+    - strongswan-h2h-psk
 {% endif %}
 {% if grains.kubelet_api_servers is defined %}
     - kube-proxy
