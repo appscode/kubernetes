@@ -185,6 +185,19 @@ addon-dir-create:
     - dir_mode: 755
     - file_mode: 644
 
+{% if pillar.get('enable_node_logging', '').lower() == 'true'
+   and pillar.get('logging_destination', '').lower() == 'appscode-elasticsearch'
+   and pillar.get('enable_cluster_logging', '').lower() == 'true' %}
+/etc/kubernetes/addons/fluentd-appscode:
+  file.recurse:
+    - source: salt://kube-addons/fluentd-appscode
+    - include_pat: E@^.+\.yaml$
+    - user: root
+    - group: root
+    - dir_mode: 755
+    - file_mode: 644
+{% endif %}
+
 {% if pillar.get('enable_cluster_alert', '').lower() == 'appscode' %}
 /etc/kubernetes/addons/appscode-searchlight:
   file.recurse:
