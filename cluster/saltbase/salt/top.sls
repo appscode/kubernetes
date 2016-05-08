@@ -39,7 +39,7 @@ base:
     - kube-proxy
 {% endif %}
 {% if pillar.get('enable_node_logging', '').lower() == 'true' and pillar['logging_destination'] is defined %}
-  {% if pillar['logging_destination'] == 'elasticsearch' %}
+  {% if pillar['logging_destination'] in ['elasticsearch', 'appscode-elasticsearch'] %}
     - fluentd-es
   {% elif pillar['logging_destination'] == 'gcp' %}
     - fluentd-gcp
@@ -73,7 +73,7 @@ base:
     - kube-node-unpacker
     - kube-admission-controls
 {% if pillar.get('enable_node_logging', '').lower() == 'true' and pillar['logging_destination'] is defined %}
-  {% if pillar['logging_destination'] == 'elasticsearch' %}
+  {% if pillar['logging_destination'] in ['elasticsearch', 'appscode-elasticsearch'] %}
     - fluentd-es
   {% elif pillar['logging_destination'] == 'gcp' %}
     - fluentd-gcp
