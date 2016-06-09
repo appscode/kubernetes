@@ -52,7 +52,7 @@ function install_no_start {
   chmod 755 /usr/sbin/policy-rc.d
 
   echo "Installing package ${NAME} from ${SRC}"
-  dpkg --install ${SRC}
+  dpkg --install --force-confold ${SRC}
 }
 
 function cleanup {
