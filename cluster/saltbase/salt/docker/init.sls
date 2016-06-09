@@ -1,8 +1,4 @@
-{% if pillar.get('is_systemd') %}
-  {% set environment_file = '/etc/sysconfig/docker' %}
-{% else %}
-  {% set environment_file = '/etc/default/docker' %}
-{% endif %}
+{% set environment_file = pillar.get('env_dir') + '/docker' %}
 
 bridge-utils:
   pkg.installed
@@ -49,8 +45,6 @@ docker:
 {% endif %}
 {% elif grains.cloud is defined and grains.cloud == 'vsphere' and grains.os == 'Debian' and grains.osrelease_info[0] >=8 %}
 
-{% if pillar.get('is_systemd') %}
-
 /opt/kubernetes/helpers/docker-prestart:
   file.managed:
     - source: salt://docker/docker-prestart
@@ -80,7 +74,6 @@ fix-service-docker:
     - watch:
       - file: {{ pillar.get('systemd_system_path') }}/docker.service
       - file: {{ environment_file }}
-{% endif %}
 
 {{ environment_file }}:
   file.managed:
@@ -305,8 +298,6 @@ docker-upgrade:
       - file: /var/cache/docker-install/{{ override_deb }}
 {% endif %} # end override_docker_ver != ''
 
-{% if pillar.get('is_systemd') %}
-
 /opt/kubernetes/helpers/docker-prestart:
   file.managed:
     - source: salt://docker/docker-prestart
@@ -381,8 +372,6 @@ fix-systemd-docker-healthcheck-service:
     - require:
       - cmd: fix-service-docker
 
-{% endif %}
-
 docker:
 # Starting Docker is racy on aws for some reason.  To be honest, since Monit
 # is managing Docker restart we should probably just delete this whole thing
@@ -399,20 +388,10 @@ docker:
 {% endif %}
 # If we put a watch on this, salt will try to start the service.
 # We put the watch on the fixer instead
-{% if not pillar.get('is_systemd') %}
-    - watch:
-      - file: {{ environment_file }}
-{% if override_docker_ver != '' %}
-      - cmd: docker-upgrade
-{% endif %}
-{% endif %}
     - require:
       - file: {{ environment_file }}
 {% if override_docker_ver != '' %}
       - cmd: docker-upgrade
 {% endif %}
-{% if pillar.get('is_systemd') %}
       - cmd: fix-service-docker
-{% endif %}
 {% endif %} # end grains.os_family != 'RedHat'
-

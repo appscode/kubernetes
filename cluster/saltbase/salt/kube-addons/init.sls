@@ -170,8 +170,6 @@ addon-dir-create:
     - group: root
     - mode: 755
 
-{% if pillar.get('is_systemd') %}
-
 {{ pillar.get('systemd_system_path') }}/kube-addons.service:
   file.managed:
     - source: salt://kube-addons/kube-addons.service
@@ -181,17 +179,6 @@ addon-dir-create:
     - name: /opt/kubernetes/helpers/services bounce kube-addons
     - watch:
       - file: {{ pillar.get('systemd_system_path') }}/kube-addons.service
-
-{% else %}
-
-/etc/init.d/kube-addons:
-  file.managed:
-    - source: salt://kube-addons/initd
-    - user: root
-    - group: root
-    - mode: 755
-
-{% endif %}
 
 # Stop kube-addons service each time salt is executed, just in case
 # there was a modification of addons.
@@ -207,12 +194,6 @@ kube-addons:
     - require:
         - service: service-kube-addon-stop
     - watch:
-{% if pillar.get('is_systemd') %}
       - file: {{ pillar.get('systemd_system_path') }}/kube-addons.service
-{% else %}
-      - file: /etc/init.d/kube-addons
-{% endif %}
-{% if pillar.get('is_systemd') %}
     - provider:
       - service: systemd
-{%- endif %}
