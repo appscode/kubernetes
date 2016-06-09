@@ -294,16 +294,7 @@ net.ipv4.ip_forward:
 {% set override_deb_sha1='' %}
 {% set override_docker_ver='' %}
 
-{% elif grains.get('cloud', '') == 'gce'
-   and grains.get('os_family', '') == 'Debian'
-   and grains.get('oscodename', '') == 'jessie' -%}
-{% set docker_pkg_name='' %}
-{% set override_deb='' %}
-{% set override_deb_sha1='' %}
-{% set override_docker_ver='' %}
-
-{% elif grains.get('cloud', '') == 'aws'
-   and grains.get('os_family', '') == 'Debian'
+{% elif grains.get('os_family', '') == 'Debian'
    and grains.get('oscodename', '') == 'jessie' -%}
 # TODO: Get from google storage?
 {% set docker_pkg_name='docker-engine' %}
@@ -463,12 +454,8 @@ docker:
 # On AWS, we use a trick now... we don't start the docker service through Salt.
 # Kubelet or our health checker will start it.  But we use service.enabled,
 # so we still have a `service: docker` node for our DAG.
-{% if grains.cloud is defined and grains.cloud == 'aws' %}
   service.enabled:
-{% else %}
-  service.running:
     - enable: True
-{% endif %}
 # If we put a watch on this, salt will try to start the service.
 # We put the watch on the fixer instead
     - require:
