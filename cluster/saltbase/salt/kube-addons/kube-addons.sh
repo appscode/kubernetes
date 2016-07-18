@@ -167,8 +167,24 @@ EOF
   create-resource-from-string "${secretyaml}" 100 10 "Secret-for-${safe_name}" "${SYSTEM_NAMESPACE}" &
 }
 
+function create-artifactory-secret() {
+  local tries=$1;
+  local -r delay=$2;
+  local -r cmd="${KUBECTL} create secret docker-registry artifactorykey --docker-server=docker.appscode.com --docker-username=${APPSCODE_NS}.${APPSCODE_CLUSTER_USER} --docker-password=bearer:${APPSCODE_API_TOKEN} --docker-email=${APPSCODE_CLUSTER_USER}@${APPSCODE_NS}.appscode.io";
+  while [ ${tries} -gt 0 ]; do
+    echo "${cmd}" | $cmd && \
+        echo "== Successfully registered artifactory secret at $(date -Is)" && \
+        return 0;
+    let tries=tries-1;
+    echo "== Failed to register artifactory secret at $(date -Is). ${tries} tries remaining. =="
+    sleep ${delay};
+  done
+  return 1;
+}
+
 function create-appscode-secrets() {
   create-cluster-metadata
+  create-artifactory-secret 100 10 &
 
   read -r -d '' apitoken <<EOF
 {
