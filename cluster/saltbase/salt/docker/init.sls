@@ -357,7 +357,7 @@ fix-systemd-docker-healthcheck-timer:
 # Trigger a first run of docker-healthcheck; needed because the timer fires 10s after the previous run.
 fix-systemd-docker-healthcheck-service:
   cmd.wait:
-    - name: /opt/kubernetes/helpers/services bounce docker-healthcheck.service
+    - name: '/opt/kubernetes/helpers/services bounce docker-healthcheck.service || true'
     - watch:
       - file: {{ pillar.get('systemd_system_path') }}/docker-healthcheck.service
     - require:
