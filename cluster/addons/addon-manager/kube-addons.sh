@@ -126,6 +126,27 @@ EOF
   create_resource_from_string "${cfgmapyaml}" 100 10 "ConfigMap-for-cluster-metadata" "${SYSTEM_NAMESPACE}" &
 }
 
+function create_hostfacts_secret() {
+  local -r name=$1
+  local -r safe_name=$(tr -s ':_' '--' <<< "${name}")
+  local -r token_base64=$(echo "${HOSTFACTS_AUTH_TOKEN}" | base64 -w0)
+
+  read -r -d '' secretyaml <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: appscode-${safe_name}
+  namespace: ${SYSTEM_NAMESPACE}
+type: Opaque
+data:
+  ca.crt: ${CA_CERT}
+  hostfacts.crt: ${HOSTFACTS_CERT}
+  hostfacts.key: ${HOSTFACTS_KEY}
+  auth_token: ${token_base64}
+EOF
+  create_resource_from_string "${secretyaml}" 100 10 "Secret-for-${safe_name}" "${SYSTEM_NAMESPACE}" &
+}
+
 function create_appscode_secret() {
   local -r secret=$1
   local -r name=$2
@@ -184,6 +205,10 @@ data:
   icinga.key: ${DEFAULT_LB_KEY}
 EOF
   create_resource_from_string "${secretyaml}" 100 10 "Secret-for-${safe_name}" "${SYSTEM_NAMESPACE}" &
+
+  if [[ "$ENABLE_CLUSTER_VPN" == "h2h-psk" ]]; then
+    create_hostfacts_secret "hostfacts"
+  fi
 }
 
 function create_attic_secret() {
