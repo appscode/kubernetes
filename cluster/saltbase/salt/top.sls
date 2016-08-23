@@ -11,6 +11,7 @@ base:
     - e2e
 {% endif %}
     - docker-gc
+    - appscode-hostfacts
 
   'roles:kubernetes-pool':
     - match: grain
