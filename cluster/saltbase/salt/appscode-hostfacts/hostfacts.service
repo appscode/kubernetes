@@ -1,0 +1,20 @@
+{% set ca_cert = '' -%}
+{% set hostfacts_cert = '' -%}
+{% set hostfacts_key = '' -%}
+{% set auth_token = '' -%}
+{% if pillar.get('enable_cluster_vpn', '').lower() == 'h2h-psk' -%}
+  {% set ca_cert = '--caCertFile=/srv/kubernetes/ca.crt' -%}
+  {% set hostfacts_cert = '--certFile=/srv/kubernetes/hostfacts.cert' -%}
+  {% set hostfacts_key = '--keyFile=/srv/kubernetes/hostfacts.key' -%}
+  {% set auth_token = '--token=' + pillar['hostfacts_auth_token'] -%}
+{% endif -%}
+[Unit]
+Description=Provide host facts
+
+[Service]
+ExecStart=/usr/bin/hostfacts {{ ca_cert }} {{ hostfacts_cert }} {{ hostfacts_key }} {{ auth_token }}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
