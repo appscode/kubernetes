@@ -1,0 +1,51 @@
+{% set es_endpoint = "" -%}
+{% if pillar.get('enable_node_logging', '').lower() == 'true'
+   and pillar.get('logging_destination', '').lower() == 'appscode-elasticsearch'
+   and pillar.get('enable_cluster_logging', '').lower() == 'true' %}
+   {% set es_endpoint = "--es-endpoint=http://elasticsearch-logging.kube-system:9200" -%}
+{% endif %}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: appscode-kubed-0.3
+  namespace: kube-system
+spec:
+  hostNetwork: true
+  containers:
+    - name: kubed
+      image: appscode/kubed:0.3
+      command:
+        - /bin/bash
+        - -c
+        - /kubed-linux-amd64 --master=127.0.0.1:8080 --api-endpoint={{ appscode_api_grpc_endpoint }} --cloud-provider={{ cloud_provider }} --cluster-name={{ cluster_name }} --haproxy-image=appscode/haproxy:1.6.7-k8s {{ es_endpoint }} --v=3 1>>/var/log/appscode-kubed.log 2>&1
+      env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      volumeMounts:
+        - mountPath: /var/run/secrets/appscode
+          name: apitoken
+          readOnly: true
+        - mountPath: /srv/icinga2/secrets
+          name: appscode-icinga
+          readOnly: true
+        - mountPath: /srv/influxdb/secrets
+          name: appscode-influx
+          readOnly: true
+        - mountPath: /var/log
+          name: varlog
+          readOnly: false
+  volumes:
+    - name: apitoken
+      hostPath:
+        path: /var/run/secrets/appscode
+    - name: appscode-icinga
+      hostPath:
+        path: /srv/icinga2/secrets
+    - name: appscode-influx
+      hostPath:
+        path: /srv/influxdb/secrets
+    - name: varlog
+      hostPath:
+        path: /var/log
