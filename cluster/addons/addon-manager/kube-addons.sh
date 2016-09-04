@@ -198,6 +198,120 @@ EOF
   fi
 }
 
+function create-default-lb() {
+  local -r raw_default_lb_cert=$(echo "${DEFAULT_LB_CERT}" | base64 --decode)
+  local -r raw_default_lb_key=$(echo "${DEFAULT_LB_KEY}" | base64 --decode)
+
+  read -r -d '' lbpem <<EOF
+${raw_default_lb_cert}
+${raw_default_lb_key}
+EOF
+  create-appscode-secret "${lbpem}" "default-lb-cert" "tls.pem" "appscode"
+
+  local -r default_lb_host=${INSTANCE_PREFIX}-${APPSCODE_NS}.${APPSCODE_CLUSTER_ROOT_DOMAIN}
+  read -r -d '' engress <<EOF
+{
+  "apiVersion": "appscode.com/v1",
+  "kind": "Ingress",
+  "metadata": {
+    "name": "default-lb",
+    "namespace": "appscode",
+    "annotations": {
+      "lb.appscode.com/type": "Daemon",
+      "lb.appscode.com/daemon.hostname": "$(hostname)"
+    }
+  },
+  "spec": {
+    "rules": [
+      {
+        "host": "${default_lb_host}",
+        "http": {
+          "paths": [
+            {
+              "path": "/icingaweb2",
+              "backend": {
+                "serviceName": "appscode-alert.kube-system",
+                "servicePort": "80"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "host": "${default_lb_host}",
+        "http": {
+          "paths": [
+            {
+              "path": "/kibana",
+              "backend": {
+                "serviceName": "kibana-logging.kube-system",
+                "servicePort": "5601"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "host": "${default_lb_host}",
+        "tcp": [
+          {
+            "backend": {
+              "serviceName": "monitoring-influxdb.kube-system",
+              "servicePort": "8083"
+            },
+            "pemName": "tls.pem",
+            "port": "8083",
+            "secretName": "appscode-default-lb-cert"
+          },
+          {
+            "backend": {
+              "serviceName": "monitoring-influxdb.kube-system",
+              "servicePort": "8086"
+            },
+            "pemName": "tls.pem",
+            "port": "8086",
+            "secretName": "appscode-default-lb-cert"
+          }
+        ]
+      },
+      {
+        "host": "${default_lb_host}",
+        "tcp": [
+          {
+            "backend": {
+              "serviceName": "appscode-alert.kube-system",
+              "servicePort": "5665"
+            },
+            "port": "5665"
+          }
+        ]
+      }
+    ],
+    "tls": [
+      {
+        "hosts": [
+          "${default_lb_host}"
+        ],
+        "secretName": "appscode-default-lb-cert"
+      }
+    ]
+  }
+}
+EOF
+
+  local tries=100;
+  local -r delay=10;
+  # curl -v -H "Content-Type: application/json" -X POST -d "${engress}" http://localhost:8080/apis/appscode.com/v1/namespaces/appscode/ingresses && \
+  while [ ${tries} -gt 0 ]; do
+    [[ `curl -s -o /dev/null -w "%{http_code}" -H "Content-Type: application/json" -X POST -d "${engress}" http://localhost:8080/apis/appscode.com/v1/namespaces/appscode/ingresses` = '200' ]] && \
+        echo "== Successfully created default lb engress at $(date -Is)" && \
+        return 0;
+    let tries=tries-1;
+    echo "== Failed to create default lb engress at $(date -Is). ${tries} tries remaining. =="
+    sleep ${delay};
+  done
+  return 1;
+}
 
 # $1 filename of addon to start.
 # $2 count of tries to start the addon.
@@ -278,6 +392,9 @@ activate-extended-ingress
 
 # Create secrets used by appscode addons: icinga, influxdb & daemon
 create-appscode-secrets
+
+# Create default load balancer to expose cluster apps
+create-default-lb &
 
 # Check if the configuration has changed recently - in case the user
 # created/updated/deleted the files on the master.
