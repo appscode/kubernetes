@@ -22,6 +22,7 @@ VERSION=v5.1-1.4.6
 ifeq ($(ARCH),amd64)
 	KUBECTL_VERSION?=v1.4.6
 	BASEIMAGE?=python:2.7-slim
+	INSTALL_TOOLS?=RUN set -x \&\& apt-get update \&\& apt-get install -y --no-install-recommends ca-certificates curl \&\& rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man /tmp/*
 endif
 ifeq ($(ARCH),arm)
 	KUBECTL_VERSION?=v1.4.6
@@ -48,6 +49,7 @@ build:
 	chmod +x $(TEMP_DIR)/kubectl
 	cd ${TEMP_DIR} && sed -i.back "s|ARCH|$(QEMUARCH)|g" Dockerfile
 	cd $(TEMP_DIR) && sed -i.back "s|BASEIMAGE|$(BASEIMAGE)|g" Dockerfile
+	cd $(TEMP_DIR) && sed -i.back "s|INSTALL_TOOLS|$(INSTALL_TOOLS)|g" Dockerfile
 
 ifeq ($(ARCH),amd64)
 	# When building "normally" for amd64, remove the whole line, it has no part in the amd64 image
