@@ -186,9 +186,27 @@ EOF
   create_resource_from_string "${secretyaml}" 100 10 "Secret-for-${safe_name}" "${SYSTEM_NAMESPACE}" &
 }
 
+function create_attic_secret() {
+  local tries=$1;
+  local -r delay=$2;
+  local -r cmd="${KUBECTL} create secret docker-registry attickey --docker-server=docker.appscode.com --docker-username=${APPSCODE_NS}.${APPSCODE_CLUSTER_USER} --docker-password=bearer:${APPSCODE_API_TOKEN} --docker-email=${APPSCODE_CLUSTER_USER}@${APPSCODE_NS}.appscode.io";
+  while [ ${tries} -gt 0 ]; do
+    echo "${cmd}" | $cmd && \
+        echo "== Successfully registered attic secret at $(date -Is)" && \
+        return 0;
+    let tries=tries-1;
+    echo "== Failed to register attic secret at $(date -Is). ${tries} tries remaining. =="
+    sleep ${delay};
+  done
+  return 1;
+}
+
 function create_appscode_secrets() {
   if [ -n "$APPSCODE_NS" ] && [ -n "APPSCODE_API_TOKEN" ]; then
     create_cluster_metadata
+    if [ -n "$ENABLE_APPSCODE_ATTIC" ]; then
+      create_attic_secret 100 10 &
+    fi
     read -r -d '' apitoken <<EOF
 {
   "namespace":"${APPSCODE_NS}",
