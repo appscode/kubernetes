@@ -26,6 +26,19 @@ SYSTEM_NAMESPACE=kube-system
 trusty_master=${TRUSTY_MASTER:-false}
 addons_dir=${ADDONS_DIR:-/etc/kubernetes/addons}
 
+function activate-extended-ingress() {
+  read -r -d '' configyaml <<EOF
+metadata:
+  name: ingress.appscode.com
+apiVersion: extensions/v1beta1
+kind: ThirdPartyResource
+description: "Extended ingress support for Kubernetes by appscode.com"
+versions:
+- name: v1
+EOF
+  create-resource-from-string "${configyaml}" 100 10 "ThirdPartyResource-for-extended-ingress" "default" &
+}
+
 function create-cluster-metadata() {
   read -r -d '' cfgmapyaml <<EOF
 apiVersion: v1
@@ -176,6 +189,7 @@ INFLUX_WRITE_USER=${APPSCODE_INFLUX_WRITE_USER}
 INFLUX_WRITE_PASSWORD=${APPSCODE_INFLUX_WRITE_PASSWORD}
 EOF
   create-appscode-secret "${influx}" "influx" ".admin" "${SYSTEM_NAMESPACE}"
+  echo "${influx}" > /srv/influxdb/secrets/.admin
 
   if [[ "$ENABLE_CLUSTER_SECURITY" == "appscode" ]]; then
     create-ossec-secret "ossec"
@@ -259,6 +273,9 @@ for obj in $(find /etc/kubernetes/admission-controls \( -name \*.yaml -o -name \
   start_addon "${obj}" 100 10 default &
   echo "++ obj ${obj} is created ++"
 done
+
+# Activate Extended Ingress to allow TCP loadbalancing
+activate-extended-ingress
 
 # Create secrets used by appscode addons: icinga, influxdb & daemon
 create-appscode-secrets

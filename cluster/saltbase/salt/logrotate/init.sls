@@ -2,7 +2,7 @@ logrotate:
   pkg:
     - installed
 
-{% set logrotate_files = ['kube-scheduler', 'kube-proxy', 'kubelet', 'kube-apiserver', 'kube-controller-manager', 'kube-addons', 'docker'] %}
+{% set logrotate_files = ['kube-scheduler', 'kube-proxy', 'kubelet', 'kube-apiserver', 'kube-controller-manager', 'kube-addons', 'docker', 'appscode-kubed'] %}
 {% for file in logrotate_files %}
 /etc/logrotate.d/{{ file }}:
   file:
