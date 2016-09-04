@@ -80,6 +80,96 @@ function log() {
   esac
 }
 
+# $1 command to execute.
+# $2 count of tries to execute the command.
+# $3 delay in seconds between two consecutive tries
+function run_until_success() {
+  local -r command=$1
+  local tries=$2
+  local -r delay=$3
+  local -r command_name=$1
+  while [ ${tries} -gt 0 ]; do
+    log DBG "executing: '$command'"
+    # let's give the command as an argument to bash -c, so that we can use
+    # && and || inside the command itself
+    /bin/bash -c "${command}" && \
+      log DB3 "== Successfully executed ${command_name} at $(date -Is) ==" && \
+      return 0
+    let tries=tries-1
+    log WRN "== Failed to execute ${command_name} at $(date -Is). ${tries} tries remaining. =="
+    sleep ${delay}
+  done
+  return 1
+}
+
+function create_cluster_metadata() {
+  read -r -d '' cfgmapyaml <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-metadata
+  namespace: default
+data:
+  appscode-ns: ${APPSCODE_NS}
+  cluster-uid: ${KUBE_UID}
+  cluster-name: ${INSTANCE_PREFIX}
+  appscode-cluster-root-domain: ${APPSCODE_CLUSTER_ROOT_DOMAIN}
+  appscode-api-grpc-endpoint: ${APPSCODE_API_GRPC_ENDPOINT}
+  appscode-api-http-endpoint: ${APPSCODE_API_HTTP_ENDPOINT}
+EOF
+  create_resource_from_string "${cfgmapyaml}" 100 10 "ConfigMap-for-cluster-metadata" "default" &
+
+  read -r -d '' cfgmapyaml <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-metadata
+  namespace: ${SYSTEM_NAMESPACE}
+data:
+  appscode-ns: ${APPSCODE_NS}
+  cluster-uid: ${KUBE_UID}
+  cluster-name: ${INSTANCE_PREFIX}
+  appscode-cluster-root-domain: ${APPSCODE_CLUSTER_ROOT_DOMAIN}
+  appscode-api-grpc-endpoint: ${APPSCODE_API_GRPC_ENDPOINT}
+  appscode-api-http-endpoint: ${APPSCODE_API_HTTP_ENDPOINT}
+EOF
+  create_resource_from_string "${cfgmapyaml}" 100 10 "ConfigMap-for-cluster-metadata" "${SYSTEM_NAMESPACE}" &
+}
+
+function create_appscode_secret() {
+  local -r secret=$1
+  local -r name=$2
+  local -r filename=$3
+  local -r namespace=$4
+  local -r safe_name=$(tr -s ':_' '--' <<< "${name}")
+
+  local -r secret_base64=$(echo "${secret}" | base64 -w0)
+  read -r -d '' secretyaml <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: appscode-${safe_name}
+  namespace: ${namespace}
+type: Opaque
+data:
+  ${filename}: ${secret_base64}
+EOF
+  create_resource_from_string "${secretyaml}" 100 10 "Secret-for-${safe_name}" "${namespace}" &
+}
+
+function create_appscode_secrets() {
+  if [ -n "$APPSCODE_NS" ] && [ -n "APPSCODE_API_TOKEN" ]; then
+    create_cluster_metadata
+    read -r -d '' apitoken <<EOF
+{
+  "namespace":"${APPSCODE_NS}",
+  "token":"${APPSCODE_API_TOKEN}"
+}
+EOF
+    create_appscode_secret "${apitoken}" "api-token" "api-token" "${SYSTEM_NAMESPACE}"
+  fi
+}
+
 # $1 filename of addon to start.
 # $2 count of tries to start the addon.
 # $3 delay in seconds between two consecutive tries
@@ -183,6 +273,9 @@ env | sort
 
 # Create the namespace that will be used to host the cluster-level add-ons.
 start_addon /opt/namespace.yaml 100 10 "" &
+
+# Create secrets used by appscode addons: icinga, influxdb & daemon
+create_appscode_secrets
 
 # Wait for the default service account to be created in the kube-system namespace.
 token_found=""
