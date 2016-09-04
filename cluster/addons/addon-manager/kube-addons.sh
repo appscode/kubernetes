@@ -26,6 +26,40 @@ SYSTEM_NAMESPACE=kube-system
 trusty_master=${TRUSTY_MASTER:-false}
 addons_dir=${ADDONS_DIR:-/etc/kubernetes/addons}
 
+function create-cluster-metadata() {
+  read -r -d '' cfgmapyaml <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-metadata
+  namespace: default
+data:
+  appscode-ns: ${APPSCODE_NS}
+  cluster-uid: ${KUBE_UID}
+  cluster-name: ${INSTANCE_PREFIX}
+  appscode-cluster-root-domain: ${APPSCODE_CLUSTER_ROOT_DOMAIN}
+  appscode-api-grpc-endpoint: ${APPSCODE_API_GRPC_ENDPOINT}
+  appscode-api-http-endpoint: ${APPSCODE_API_HTTP_ENDPOINT}
+EOF
+  create-resource-from-string "${cfgmapyaml}" 100 10 "ConfigMap-for-cluster-metadata" "default" &
+
+  read -r -d '' cfgmapyaml <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-metadata
+  namespace: ${SYSTEM_NAMESPACE}
+data:
+  appscode-ns: ${APPSCODE_NS}
+  cluster-uid: ${KUBE_UID}
+  cluster-name: ${INSTANCE_PREFIX}
+  appscode-cluster-root-domain: ${APPSCODE_CLUSTER_ROOT_DOMAIN}
+  appscode-api-grpc-endpoint: ${APPSCODE_API_GRPC_ENDPOINT}
+  appscode-api-http-endpoint: ${APPSCODE_API_HTTP_ENDPOINT}
+EOF
+  create-resource-from-string "${cfgmapyaml}" 100 10 "ConfigMap-for-cluster-metadata" "${SYSTEM_NAMESPACE}" &
+}
+
 function create-ossec-secret() {
   local -r name=$1
   local -r safe_name=$(tr -s ':_' '--' <<< "${name}")
@@ -116,6 +150,8 @@ EOF
 }
 
 function create-appscode-secrets() {
+  create-cluster-metadata
+
   read -r -d '' apitoken <<EOF
 {
   "namespace":"${APPSCODE_NS}",
