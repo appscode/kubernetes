@@ -43,7 +43,6 @@ base:
     - e2e-image-puller
 {% endif %}
     - logrotate
-    - supervisor
 
   'roles:kubernetes-master':
     - match: grain
@@ -63,7 +62,6 @@ base:
     - kube-apiserver
     - kube-controller-manager
     - kube-scheduler
-    - supervisor
     - kube-client-tools
     - kube-master-addons
     - kube-admission-controls
