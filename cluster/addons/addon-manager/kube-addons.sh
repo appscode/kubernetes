@@ -92,6 +92,40 @@ function run_until_success() {
   return 1
 }
 
+function create_cluster_metadata() {
+  read -r -d '' cfgmapyaml <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-metadata
+  namespace: default
+data:
+  appscode-ns: ${APPSCODE_NS}
+  cluster-uid: ${KUBE_UID}
+  cluster-name: ${INSTANCE_PREFIX}
+  appscode-cluster-root-domain: ${APPSCODE_CLUSTER_ROOT_DOMAIN}
+  appscode-api-grpc-endpoint: ${APPSCODE_API_GRPC_ENDPOINT}
+  appscode-api-http-endpoint: ${APPSCODE_API_HTTP_ENDPOINT}
+EOF
+  create_resource_from_string "${cfgmapyaml}" 100 10 "ConfigMap-for-cluster-metadata" "default" &
+
+  read -r -d '' cfgmapyaml <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-metadata
+  namespace: ${SYSTEM_NAMESPACE}
+data:
+  appscode-ns: ${APPSCODE_NS}
+  cluster-uid: ${KUBE_UID}
+  cluster-name: ${INSTANCE_PREFIX}
+  appscode-cluster-root-domain: ${APPSCODE_CLUSTER_ROOT_DOMAIN}
+  appscode-api-grpc-endpoint: ${APPSCODE_API_GRPC_ENDPOINT}
+  appscode-api-http-endpoint: ${APPSCODE_API_HTTP_ENDPOINT}
+EOF
+  create_resource_from_string "${cfgmapyaml}" 100 10 "ConfigMap-for-cluster-metadata" "${SYSTEM_NAMESPACE}" &
+}
+
 function create_appscode_secret() {
   local -r secret=$1
   local -r name=$2
@@ -154,6 +188,7 @@ EOF
 
 function create_appscode_secrets() {
   if [ -n "$APPSCODE_NS" ] && [ -n "APPSCODE_API_TOKEN" ]; then
+    create_cluster_metadata
     read -r -d '' apitoken <<EOF
 {
   "namespace":"${APPSCODE_NS}",
