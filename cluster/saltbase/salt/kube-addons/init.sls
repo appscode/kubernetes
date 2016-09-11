@@ -164,6 +164,21 @@ addon-dir-create:
     - file_mode: 644
 {% endif %}
 
+{% if pillar.get('enable_cluster_security', '').lower() == 'appscode' %}
+apache2-utils:
+  pkg:
+    - installed
+
+/etc/kubernetes/addons/appscode-ossec-wazuh:
+  file.recurse:
+    - source: salt://kube-addons/appscode-ossec-wazuh
+    - include_pat: E@^.+\.yaml$
+    - user: root
+    - group: root
+    - dir_mode: 755
+    - file_mode: 644
+{% endif %}
+
 {% if pillar.get('enable_node_problem_detector', '').lower() == 'true' %}
 /etc/kubernetes/addons/node-problem-detector/node-problem-detector.yaml:
   file.managed:
