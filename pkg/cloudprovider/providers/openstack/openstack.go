@@ -504,6 +504,10 @@ type LoadBalancer struct {
 	opts    LoadBalancerOpts
 }
 
+func (os *OpenStack) Firewall() (cloudprovider.Firewall, bool) {
+	return nil, false
+}
+
 func (os *OpenStack) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	glog.V(4).Info("openstack.LoadBalancer() called")
 

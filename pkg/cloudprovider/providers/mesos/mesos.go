@@ -102,6 +102,11 @@ func (c *MesosCloud) Instances() (cloudprovider.Instances, bool) {
 	return c, true
 }
 
+// Firewall always returns nil, false in this implementation.
+func (c *MesosCloud) Firewall() (cloudprovider.Firewall, bool) {
+	return nil, false
+}
+
 // LoadBalancer always returns nil, false in this implementation.
 // Mesos does not provide any type of native load balancing by default,
 // so this implementation always returns (nil, false).
