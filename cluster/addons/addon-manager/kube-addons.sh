@@ -181,18 +181,18 @@ env | sort
 # Create the namespace that will be used to host the cluster-level add-ons.
 start_addon /opt/namespace.yaml 100 10 "" &
 
-# Wait for the default service account to be created in the kube-system namespace.
+# Wait for the default service account to be created in the appscode namespace.
 token_found=""
 while [ -z "${token_found}" ]; do
   sleep .5
-  token_found=$(${KUBECTL} ${KUBECTL_OPTS} get --namespace="${SYSTEM_NAMESPACE}" serviceaccount default -o go-template="{{with index .secrets 0}}{{.name}}{{end}}")
+  token_found=$(${KUBECTL} ${KUBECTL_OPTS} get --namespace=appscode serviceaccount default -o go-template="{{with index .secrets 0}}{{.name}}{{end}}")
   if [[ $? -ne 0 ]]; then
     token_found="";
     log WRN "== Error getting default service account, retry in 0.5 second =="
   fi
 done
 
-log INFO "== Default service account in the ${SYSTEM_NAMESPACE} namespace has token ${token_found} =="
+log INFO "== Default service account in the appscode namespace has token ${token_found} =="
 
 # Create admission_control objects if defined before any other addon services. If the limits
 # are defined in a namespace other than default, we should still create the limits for the
