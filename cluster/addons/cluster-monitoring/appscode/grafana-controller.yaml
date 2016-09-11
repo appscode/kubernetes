@@ -1,0 +1,50 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    k8s-app: grafana
+    kubernetes.io/cluster-service: "true"
+  name: grafana
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: grafana
+  template:
+    metadata:
+      labels:
+        k8s-app: grafana
+    spec:
+      containers:
+      - image: appscode/grafana:4.3.0
+        imagePullPolicy: IfNotPresent
+        name: grafana
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        resources:
+          # keep request = limit to keep this container in guaranteed class
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        volumeMounts:
+        - mountPath: /var
+          name: grafana-persistent-storage
+        - mountPath: /var/run/secrets/appscode
+          name: appscode-api-token
+        - mountPath: /var/run/config/appscode
+          name: appscode-cluster-metadata
+      volumes:
+      - emptyDir: {}
+        name: grafana-persistent-storage
+      - name: appscode-api-token
+        secret:
+          secretName: appscode-api-token
+      - configMap:
+          Name: cluster-metadata
+        name: appscode-cluster-metadata
