@@ -3,6 +3,7 @@ base:
     - base
     - debian-auto-upgrades
     - salt-helpers
+    - glusterfs-client
 {% if grains['cloud'] != 'gce' %}
     - ntp
 {% endif %}
