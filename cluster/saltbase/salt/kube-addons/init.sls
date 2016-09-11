@@ -72,6 +72,20 @@ addon-dir-create:
     - file_mode: 644
 {% endif %}
 
+{% if pillar.get('enable_cluster_monitoring', '').lower() == 'appscode' %}
+/etc/kubernetes/addons/cluster-monitoring/appscode:
+  file.recurse:
+    - source: salt://kube-addons/cluster-monitoring/appscode
+    - include_pat: E@(^.+\.yaml$|^.+\.json$)
+    - template: jinja
+    - user: root
+    - group: root
+    - dir_mode: 755
+    - file_mode: 644
+    - context:
+      ganglia_service_ip: {{ pillar.ganglia_service_ip | default('') }}
+{% endif %}
+
 {% if pillar.get('enable_cluster_dns', '').lower() == 'true' %}
 /etc/kubernetes/addons/dns/skydns-svc.yaml:
   file.managed:
