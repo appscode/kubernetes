@@ -26,6 +26,35 @@ SYSTEM_NAMESPACE=kube-system
 trusty_master=${TRUSTY_MASTER:-false}
 addons_dir=${ADDONS_DIR:-/etc/kubernetes/addons}
 
+function create-ossec-secret() {
+  local -r name=$1
+  local -r safe_name=$(tr -s ':_' '--' <<< "${name}")
+  local -r ossec_api_user='agent'
+
+    read -r -d '' auth <<EOF
+${ossec_api_user},${APPSCODE_OSSEC_API_PASSWORD}
+EOF
+  local -r auth_base64=$(echo "${auth}" | base64 -w0)
+
+  local htauth=$(htpasswd -nb ${ossec_api_user} ${APPSCODE_OSSEC_API_PASSWORD})
+  local -r htauth_base64=$(echo "${htauth}" | base64 -w0)
+
+  read -r -d '' secretyaml <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: appscode-${safe_name}
+  namespace: ${SYSTEM_NAMESPACE}
+type: Opaque
+data:
+  basic-auth.csv: ${auth_base64}
+  htpasswd: ${htauth_base64}
+  server.crt: ${OSSEC_SERVER_CERT}
+  server.key: ${OSSEC_SERVER_KEY}
+EOF
+  create-resource-from-string "${secretyaml}" 100 10 "Secret-for-${safe_name}" "${SYSTEM_NAMESPACE}" &
+}
+
 function create-appscode-secret() {
   local -r secret=$1
   local -r name=$2
@@ -111,6 +140,13 @@ INFLUX_WRITE_USER=${APPSCODE_INFLUX_WRITE_USER}
 INFLUX_WRITE_PASSWORD=${APPSCODE_INFLUX_WRITE_PASSWORD}
 EOF
   create-appscode-secret "${influx}" "influx" ".admin" "${SYSTEM_NAMESPACE}"
+
+  if [[ "$ENABLE_CLUSTER_SECURITY" == "appscode" ]]; then
+    create-ossec-secret "ossec"
+
+    local -r agentyaml=`cat ${addons_dir}/appscode-ossec-wazuh/ossec-agent-daemonset.yaml`
+    create-resource-from-string "${agentyaml}" 100 10 "daemonset-for-ossec-agent" "${SYSTEM_NAMESPACE}" &
+  fi
 }
 
 
