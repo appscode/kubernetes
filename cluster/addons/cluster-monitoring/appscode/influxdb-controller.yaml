@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: monitoring-influxdb-0.12.2
+  namespace: kube-system
+  labels:
+    k8s-app: influxdb
+    version: '0.12.2'
+    kubernetes.io/cluster-service: "true"
+spec:
+  replicas: 1
+  selector:
+    k8s-app: influxdb
+    version: '0.12.2'
+  template:
+    metadata:
+      labels:
+        k8s-app: influxdb
+        version: '0.12.2'
+    spec:
+      containers:
+        - image: appscode/influxdb:0.12.2-v2-k8s
+          name: influxdb
+          resources:
+            limits:
+              cpu: 100m
+              memory: 200Mi
+          ports:
+          - containerPort: 8083
+            name: admin
+            hostPort: 8083
+          - containerPort: 8086
+            name: http
+            hostPort: 8086
+          volumeMounts:
+          - name: influxdb-persistent-storage
+            mountPath: /var/pv
+          - mountPath: /srv/influxdb/secrets
+            name: appscode-influx
+      volumes:
+      - name: influxdb-persistent-storage
+        emptyDir: {}
+      - name: appscode-influx
+        secret:
+          secretName: appscode-influx
