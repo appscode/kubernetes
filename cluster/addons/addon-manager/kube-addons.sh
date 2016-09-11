@@ -24,6 +24,95 @@ ADDON_CHECK_INTERVAL_SEC=${TEST_ADDON_CHECK_INTERVAL_SEC:-60}
 
 SYSTEM_NAMESPACE=kube-system
 trusty_master=${TRUSTY_MASTER:-false}
+addons_dir=${ADDONS_DIR:-/etc/kubernetes/addons}
+
+function create-appscode-secret() {
+  local -r secret=$1
+  local -r name=$2
+  local -r filename=$3
+  local -r namespace=$4
+  local -r safe_name=$(tr -s ':_' '--' <<< "${name}")
+
+  local -r secret_base64=$(echo "${secret}" | base64 -w0)
+  read -r -d '' secretyaml <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: appscode-${safe_name}
+  namespace: ${namespace}
+type: Opaque
+data:
+  ${filename}: ${secret_base64}
+EOF
+  create-resource-from-string "${secretyaml}" 100 10 "Secret-for-${safe_name}" "${namespace}" &
+}
+
+function create-icinga-secret() {
+  read -r -d '' env_file <<EOF
+ICINGA_WEB_HOST=127.0.0.1
+ICINGA_WEB_PORT=5432
+ICINGA_WEB_DB=icingawebdb
+ICINGA_WEB_USER=${APPSCODE_ICINGA_WEB_USER}
+ICINGA_WEB_PASSWORD=${APPSCODE_ICINGA_WEB_PASSWORD}
+ICINGA_IDO_HOST=127.0.0.1
+ICINGA_IDO_PORT=5432
+ICINGA_IDO_DB=icingaidodb
+ICINGA_IDO_USER=${APPSCODE_ICINGA_IDO_USER}
+ICINGA_IDO_PASSWORD=${APPSCODE_ICINGA_IDO_PASSWORD}
+ICINGA_API_USER=${APPSCODE_ICINGA_API_USER}
+ICINGA_API_PASSWORD=${APPSCODE_ICINGA_API_PASSWORD}
+ICINGA_K8S_SERVICE=appscode-alert
+EOF
+  mkdir -p /srv/icinga2/secrets
+  echo "${env_file}" > /srv/icinga2/secrets/.env
+
+  local -r name='icinga'
+  local -r safe_name=$(tr -s ':_' '--' <<< "${name}")
+
+  local -r env_file_base64=$(echo "${env_file}" | base64 -w0)
+  read -r -d '' secretyaml <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: appscode-${safe_name}
+  namespace: ${SYSTEM_NAMESPACE}
+type: Opaque
+data:
+  .env: ${env_file_base64}
+  ca.crt: ${CA_CERT}
+  icinga.crt: ${DEFAULT_LB_CERT}
+  icinga.key: ${DEFAULT_LB_KEY}
+EOF
+  create-resource-from-string "${secretyaml}" 100 10 "Secret-for-${safe_name}" "${SYSTEM_NAMESPACE}" &
+}
+
+function create-appscode-secrets() {
+  read -r -d '' apitoken <<EOF
+{
+  "namespace":"${APPSCODE_NS}",
+  "token":"${APPSCODE_API_TOKEN}"
+}
+EOF
+  mkdir -p /var/run/secrets/appscode
+  echo "${apitoken}" > /var/run/secrets/appscode/api-token
+  create-appscode-secret "${apitoken}" "api-token" "api-token" "${SYSTEM_NAMESPACE}"
+
+  create-icinga-secret
+
+    read -r -d '' influx <<EOF
+INFLUX_HOST=monitoring-influxdb
+INFLUX_API_PORT=8086
+INFLUX_DB=k8s
+INFLUX_ADMIN_USER=${APPSCODE_INFLUX_ADMIN_USER}
+INFLUX_ADMIN_PASSWORD=${APPSCODE_INFLUX_ADMIN_PASSWORD}
+INFLUX_READ_USER=${APPSCODE_INFLUX_READ_USER}
+INFLUX_READ_PASSWORD=${APPSCODE_INFLUX_READ_PASSWORD}
+INFLUX_WRITE_USER=${APPSCODE_INFLUX_WRITE_USER}
+INFLUX_WRITE_PASSWORD=${APPSCODE_INFLUX_WRITE_PASSWORD}
+EOF
+  create-appscode-secret "${influx}" "influx" ".admin" "${SYSTEM_NAMESPACE}"
+}
+
 
 # $1 filename of addon to start.
 # $2 count of tries to start the addon.
@@ -98,6 +187,9 @@ for obj in $(find /etc/kubernetes/admission-controls \( -name \*.yaml -o -name \
   start_addon "${obj}" 100 10 default &
   echo "++ obj ${obj} is created ++"
 done
+
+# Create secrets used by appscode addons: icinga, influxdb & daemon
+create-appscode-secrets
 
 # Check if the configuration has changed recently - in case the user
 # created/updated/deleted the files on the master.
