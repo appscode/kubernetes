@@ -1,0 +1,18 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: appscode-alert
+  namespace: kube-system
+  labels:
+    kubernetes.io/cluster-service: "true"
+    kubernetes.io/name: "AppsCodeAlert"
+spec:
+  ports:
+    - name: web
+      port: 80
+      targetPort: tcp
+    - name: api
+      port: 5665
+      targetPort: api
+  selector:
+    k8s-app: appscode-alert

@@ -1,0 +1,78 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: appscode-alert-2.4.8
+  namespace: kube-system
+  labels:
+    k8s-app: appscode-alert
+    kubernetes.io/cluster-service: "true"
+    version: '2.4.8'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: appscode-alert
+      version: '2.4.8'
+  template:
+    metadata:
+      labels:
+        k8s-app: appscode-alert
+        version: '2.4.8'
+        kubernetes.io/cluster-service: "true"
+    spec:
+      containers:
+      - image: appscode/icinga:2.4.8-1.4
+        imagePullPolicy: Always
+        name: icinga
+        ports:
+        - containerPort: 5665
+          name: api
+          protocol: TCP
+        - containerPort: 80
+          name: tcp
+          protocol: TCP
+        volumeMounts:
+          - name: data-volume
+            mountPath: /var/pv
+          - name: script-volume
+            mountPath: /var/db-script
+          - name: appscode-api-token
+            mountPath: /var/run/secrets/appscode
+          - name: appscode-cluster-metadata
+            mountPath: /var/run/config/appscode
+          - name: appscode-influx
+            mountPath: /srv/influxdb/secrets
+          - name: appscode-icinga
+            mountPath: /srv/icinga2/secrets
+      - image: appscode/postgres:9.5-v3-db
+        imagePullPolicy: Always
+        name: ido
+        args:
+          - basic
+          - './setup-db.sh'
+        ports:
+          - containerPort: 5432
+            name: ido
+            protocol: TCP
+        volumeMounts:
+          - name: data-volume
+            mountPath: /var/pv
+          - name: script-volume
+            mountPath: /var/db-script
+      volumes:
+        - name: data-volume
+          emptyDir: {}
+        - name: script-volume
+          emptyDir: {}
+        - name: appscode-api-token
+          secret:
+            secretName: appscode-api-token
+        - name: appscode-cluster-metadata
+          configMap:
+            name: cluster-metadata
+        - name: appscode-influx
+          secret:
+            secretName: appscode-influx
+        - name: appscode-icinga
+          secret:
+            secretName: appscode-icinga
