@@ -10,7 +10,7 @@ spec:
   hostNetwork: true
   containers:
   - name: kube-addon-manager
-    image: gcr.io/google-containers/kube-addon-manager:v4
+    image: appscode/kube-addon-manager:v5
     resources:
       requests:
         cpu: 5m
@@ -19,7 +19,13 @@ spec:
     - mountPath: /etc/kubernetes/
       name: addons
       readOnly: true
+    - mountPath: /var/cache/kubernetes-install/
+      name: kube-env
+      readOnly: true
   volumes:
   - hostPath:
       path: /etc/kubernetes/
     name: addons
+  - hostPath:
+      path: /var/cache/kubernetes-install/
+    name: kube-env
