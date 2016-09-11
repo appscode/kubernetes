@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-IMAGE=gcr.io/google-containers/kube-addon-manager
+IMAGE=appscode/kube-addon-manager
 ARCH?=amd64
 TEMP_DIR:=$(shell mktemp -d)
 VERSION=v5.1
@@ -20,21 +20,21 @@ VERSION=v5.1
 # amd64 and arm has "stable" binaries pushed for v1.2, arm64 and ppc64le hasn't so they have to fetch the latest alpha
 # however, arm64 and ppc64le are very experimental right now, so it's okay
 ifeq ($(ARCH),amd64)
-	KUBECTL_VERSION?=v1.3.0-beta.2
+	KUBECTL_VERSION?=v1.4.4
 	BASEIMAGE?=python:2.7-slim
 endif
 ifeq ($(ARCH),arm)
-	KUBECTL_VERSION?=v1.3.0-beta.2
+	KUBECTL_VERSION?=v1.4.4
 	BASEIMAGE?=hypriot/rpi-python:2.7
 	QEMUARCH=arm
 endif
 ifeq ($(ARCH),arm64)
-	KUBECTL_VERSION?=v1.3.0-beta.2
+	KUBECTL_VERSION?=v1.4.4
 	BASEIMAGE?=aarch64/python:2.7-slim
 	QEMUARCH=aarch64
 endif
 ifeq ($(ARCH),ppc64le)
-	KUBECTL_VERSION?=v1.3.0-beta.2
+	KUBECTL_VERSION?=v1.4.4
 	BASEIMAGE?=ppc64le/python:2.7-slim
 	QEMUARCH=ppc64le
 endif
@@ -63,11 +63,11 @@ endif
 	docker build -t $(IMAGE)-$(ARCH):$(VERSION) $(TEMP_DIR)
 
 push: build
-	gcloud docker push $(IMAGE)-$(ARCH):$(VERSION)
+	docker push $(IMAGE)-$(ARCH):$(VERSION)
 ifeq ($(ARCH),amd64)
 	# Backward compatibility. TODO: deprecate this image tag
-	docker tag -f $(IMAGE)-$(ARCH):$(VERSION) $(IMAGE):$(VERSION)
-	gcloud docker push $(IMAGE):$(VERSION)
+	docker tag $(IMAGE)-$(ARCH):$(VERSION) $(IMAGE):$(VERSION)
+	docker push $(IMAGE):$(VERSION)
 endif
 
 clean:
