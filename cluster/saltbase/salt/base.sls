@@ -2,9 +2,10 @@ pkg-core:
   pkg.installed:
     - names:
       - curl
+# Make sure git is installed for mounting git volumes
+      - git
 {% if grains['os_family'] == 'RedHat' %}
       - python
-      - git
       - socat
       - cronie
 {% else %}
@@ -19,10 +20,6 @@ pkg-core:
 # For sanity, we try to make sure we have the same netcat on all OSes (#15166)
 {% if grains['os'] == 'Ubuntu' %}
       - netcat-traditional
-{% endif %}
-# Make sure git is installed for mounting git volumes
-{% if grains['os'] == 'Ubuntu' %}
-      - git
 {% endif %}
 
 # Fix ARP cache issues on AWS by setting net.ipv4.neigh.default.gc_thresh1=0
