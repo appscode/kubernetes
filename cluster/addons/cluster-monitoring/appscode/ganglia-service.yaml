@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ganglia
+  namespace: appscode
+  labels:
+    kubernetes.io/cluster-service: "true"
+    kubernetes.io/name: "Ganglia"
+spec:
+  ports:
+    - name: heapster
+      port: 8649
+      targetPort: heapster
+      protocol: TCP
+    - name: sflow
+      port: 6343
+      targetPort: sflow
+      protocol: UDP
+    - name: gmetric
+      port: 8649
+      targetPort: gmetric
+      protocol: UDP
+  clusterIP: {{ ganglia_service_ip }}
+  selector:
+    app: ganglia
