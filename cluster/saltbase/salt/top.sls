@@ -70,6 +70,7 @@ base:
     - kube-scheduler
     - kube-client-tools
     - kube-master-addons
+    - kube-node-unpacker
     - kube-admission-controls
 {% if pillar.get('enable_node_logging', '').lower() == 'true' and pillar['logging_destination'] is defined %}
   {% if pillar['logging_destination'] == 'elasticsearch' %}
@@ -85,6 +86,9 @@ base:
 {% if grains['cloud'] is defined and grains['cloud'] in [ 'vagrant', 'gce', 'aws', 'vsphere', 'photon-controller', 'openstack'] %}
     - docker
     - kubelet
+{% endif %}
+{% if grains.kubelet_api_servers is defined %}
+    - kube-proxy
 {% endif %}
 {% if pillar.get('network_provider', '').lower() == 'opencontrail' %}
     - opencontrail-networking-master
