@@ -18,6 +18,7 @@ pkg-core:
       - socat
       - cron
       - libapparmor1
+      - libltdl7
 {% endif %}
 # Ubuntu installs netcat-openbsd by default, but on GCE/Debian netcat-traditional is installed.
 # They behave slightly differently.
