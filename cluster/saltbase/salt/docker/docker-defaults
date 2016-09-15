@@ -4,10 +4,7 @@
 {% set e2e_opts = '-s devicemapper' -%}
 {% endif -%}
 {% set bridge_opts = "--bridge=cbr0" %}
-{% if pillar.get('network_provider', '').lower() == 'kubenet' %}
-  {% set bridge_opts = "" %}
-{% endif -%}
-{% if pillar.get('network_provider', '').lower() == 'cni' %}
+{% if pillar.get('network_provider', '').lower() in ['kubenet', 'cni', 'flannel'] %}
   {% set bridge_opts = "" %}
 {% endif -%}
 {% set log_level = "--log-level=warn" -%}
