@@ -81,6 +81,11 @@ func newCSCloud(cfg *CSConfig) (*CSCloud, error) {
 	return &CSCloud{client, cfg.Global.ProjectID, cfg.Global.Zone}, nil
 }
 
+// Firewall returns an implementation of Firewall for CloudStack.
+func (vs *CSCloud) Firewall() (cloudprovider.Firewall, bool) {
+	return nil, false
+}
+
 // LoadBalancer returns an implementation of LoadBalancer for CloudStack.
 func (cs *CSCloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	return cs, true
