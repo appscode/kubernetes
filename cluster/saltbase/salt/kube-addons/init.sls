@@ -211,7 +211,14 @@ apache2-utils:
 
 {% if pillar.get('network_provider', '').lower() == 'kube-flannel' %}
 {% set public_ip = "" -%}
+{% if grains.internal_ip is defined and grains.cloud is defined and grains.cloud in ['digitalocean'] -%}
+  {% set public_ip = "--public-ip=" + grains.internal_ip -%}
+{% endif -%}
+
 {% set iface = "" -%}
+{% if pillar['host_iface'] is defined and grains.cloud is defined and grains.cloud in ['digitalocean'] -%}
+  {% set iface = "--iface=" + pillar['host_iface'] -%}
+{% endif -%}
 
 /etc/kubernetes/addons/kube-flannel:
   file.recurse:
