@@ -1,5 +1,6 @@
 base:
   '*':
+    - env
     - mine
     - cluster-params
     - logging

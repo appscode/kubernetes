@@ -3,7 +3,7 @@ Description=Kubernetes Kubelet Server
 Documentation=https://github.com/kubernetes/kubernetes
 
 [Service]
-EnvironmentFile=/etc/sysconfig/kubelet
+EnvironmentFile={{ environment_file }}
 ExecStart=/usr/local/bin/kubelet "$DAEMON_ARGS"
 Restart=always
 KillMode=process
