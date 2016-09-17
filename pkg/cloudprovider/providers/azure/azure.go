@@ -137,6 +137,11 @@ func NewCloud(configReader io.Reader) (cloudprovider.Interface, error) {
 	return &az, nil
 }
 
+// Firewall returns a firewall interface. Also returns true if the interface is supported, false otherwise.
+func (az *Cloud) Firewall() (cloudprovider.Firewall, bool) {
+	return nil, false
+}
+
 // LoadBalancer returns a balancer interface. Also returns true if the interface is supported, false otherwise.
 func (az *Cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	return az, true
