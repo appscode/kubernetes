@@ -532,6 +532,11 @@ func (vs *VSphere) ProviderName() string {
 	return ProviderName
 }
 
+// Firewall returns an implementation of Firewall for vSphere.
+func (vs *VSphere) Firewall() (cloudprovider.Firewall, bool) {
+	return nil, false
+}
+
 // LoadBalancer returns an implementation of LoadBalancer for vSphere.
 func (vs *VSphere) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	return nil, false

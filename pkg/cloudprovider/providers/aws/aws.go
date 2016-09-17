@@ -856,6 +856,11 @@ func (c *Cloud) ScrubDNS(nameservers, searches []string) (nsOut, srchOut []strin
 	return nameservers, searches
 }
 
+// Firewall returns an implementation of Firewall for Amazon Web Services.
+func (c *Cloud) Firewall() (cloudprovider.Firewall, bool) {
+	return c, true
+}
+
 // LoadBalancer returns an implementation of LoadBalancer for Amazon Web Services.
 func (c *Cloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	return c, true
@@ -2130,6 +2135,26 @@ func (c *Cloud) ensureClusterTags(resourceID string, tags []*ec2.Tag) error {
 // For multi-cluster isolation, name must be globally unique, for example derived from the service UUID.
 // Returns the security group id or error
 func (c *Cloud) ensureSecurityGroup(name string, description string) (string, error) {
+	groupID, err := c.ensureUntaggedSecurityGroup(name, description)
+	if err != nil {
+		return "", err
+	}
+
+	err = c.createTags(groupID, c.filterTags)
+	if err != nil {
+		// If we retry, ensureClusterTags will recover from this - it
+		// will add the missing tags.  We could delete the security
+		// group here, but that doesn't feel like the right thing, as
+		// the caller is likely to retry the create
+		return "", fmt.Errorf("error tagging security group: %v", err)
+	}
+	return groupID, nil
+}
+
+// Makes sure the security group exists.
+// For multi-cluster isolation, name must be globally unique, for example derived from the service UUID.
+// Returns the security group id or error
+func (c *Cloud) ensureUntaggedSecurityGroup(name string, description string) (string, error) {
 	groupID := ""
 	attempt := 0
 	for {
@@ -2746,6 +2771,117 @@ func (c *Cloud) EnsureLoadBalancer(clusterName string, apiService *api.Service, 
 	return status, nil
 }
 
+// EnsureFirewall implements LoadBalancer.EnsureLoadBalancer
+func (c *Cloud) EnsureFirewall(apiService *api.Service, hostname string) error {
+	glog.V(2).Infof("EnsureLoadBalancer(%v, %v, %v, %v, %v, %v)",
+		apiService.Namespace, apiService.Name, c.region, apiService.Spec.LoadBalancerIP, apiService.Spec.Ports, hostname)
+
+	if apiService.Spec.SessionAffinity != api.ServiceAffinityNone {
+		// ELB supports sticky sessions, but only when configured for HTTP/HTTPS
+		return fmt.Errorf("unsupported load balancer affinity: %v", apiService.Spec.SessionAffinity)
+	}
+
+	if len(apiService.Spec.Ports) == 0 {
+		return errors.New("requested load balancer with no ports")
+	}
+
+	for _, port := range apiService.Spec.Ports {
+		if port.Protocol != api.ProtocolTCP {
+			return errors.New("Only TCP LoadBalancer is supported for AWS ELB")
+		}
+	}
+
+	if apiService.Spec.LoadBalancerIP != "" {
+		return errors.New("LoadBalancerIP cannot be specified for AWS ELB")
+	}
+
+	hostSet := sets.NewString(hostname)
+	instances, err := c.getInstancesByNodeNamesCached(hostSet)
+	if err != nil {
+		return err
+	}
+
+	sourceRanges, err := service.GetLoadBalancerSourceRanges(apiService)
+	if err != nil {
+		return err
+	}
+
+	loadBalancerName := cloudprovider.GetLoadBalancerName(apiService)
+	serviceName := types.NamespacedName{Namespace: apiService.Namespace, Name: apiService.Name}
+
+	// Create a security group for the load balancer
+	var securityGroupID string
+	{
+		sgName := "k8s-elb-" + loadBalancerName
+		sgDescription := fmt.Sprintf("Security group for Kubernetes DaemonNode %s (%v)", loadBalancerName, serviceName)
+		securityGroupID, err = c.ensureUntaggedSecurityGroup(sgName, sgDescription)
+		if err != nil {
+			glog.Error("Error creating load balancer security group: ", err)
+			return err
+		}
+		err = c.createTags(securityGroupID, map[string]string{
+			"AppsCodeCluster": c.getClusterName(),
+		})
+		if err != nil {
+			// If we retry, ensureClusterTags will recover from this - it
+			// will add the missing tags.  We could delete the security
+			// group here, but that doesn't feel like the right thing, as
+			// the caller is likely to retry the create
+			return fmt.Errorf("error tagging security group: %v", err)
+		}
+
+		ec2SourceRanges := []*ec2.IpRange{}
+		for _, sourceRange := range sourceRanges.StringSlice() {
+			ec2SourceRanges = append(ec2SourceRanges, &ec2.IpRange{CidrIp: aws.String(sourceRange)})
+		}
+
+		permissions := NewIPPermissionSet()
+		for _, port := range apiService.Spec.Ports {
+			portInt64 := int64(port.Port)
+			protocol := strings.ToLower(string(port.Protocol))
+
+			permission := &ec2.IpPermission{}
+			permission.FromPort = &portInt64
+			permission.ToPort = &portInt64
+			permission.IpRanges = ec2SourceRanges
+			permission.IpProtocol = &protocol
+
+			permissions.Insert(permission)
+		}
+		_, err = c.setSecurityGroupIngress(securityGroupID, permissions)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = c.updateInstanceSecurityGroupsForFirewall(securityGroupID, instances)
+	if err != nil {
+		glog.Warning("Error opening ingress rules for the load balancer to the instances: ", err)
+		return err
+	}
+
+	{
+		// Add to network interface
+		for _, instance := range instances {
+			// Get the actual list of groups that allow ingress from the load-balancer
+			attrRequest := &ec2.ModifyInstanceAttributeInput{}
+			attrRequest.InstanceId = instance.InstanceId
+			attrRequest.Groups = []*string{aws.String(securityGroupID)}
+			for _, sg := range instance.SecurityGroups {
+				attrRequest.Groups = append(attrRequest.Groups, sg.GroupId)
+			}
+			_, err := c.ec2.ModifyInstanceAttribute(attrRequest)
+			if err != nil {
+				glog.Warning("Error adding security group to the instance: ", instance.InstanceId, err)
+				return err
+			}
+		}
+	}
+
+	// TODO: Wait for creation?
+	return nil
+}
+
 // GetLoadBalancer is an implementation of LoadBalancer.GetLoadBalancer
 func (c *Cloud) GetLoadBalancer(clusterName string, service *api.Service) (*api.LoadBalancerStatus, bool, error) {
 	loadBalancerName := cloudprovider.GetLoadBalancerName(service)
@@ -2962,6 +3098,107 @@ func (c *Cloud) updateInstanceSecurityGroupsForLoadBalancer(lb *elb.LoadBalancer
 	return nil
 }
 
+func (s *Cloud) updateInstanceSecurityGroupsForFirewall(loadBalancerSecurityGroupId string, allInstances []*ec2.Instance) error {
+	// Get the actual list of groups that allow ingress from the load-balancer
+	describeRequest := &ec2.DescribeSecurityGroupsInput{}
+	filters := []*ec2.Filter{}
+	filters = append(filters, newEc2Filter("ip-permission.group-id", loadBalancerSecurityGroupId))
+	describeRequest.Filters = s.addFilters(filters)
+	actualGroups, err := s.ec2.DescribeSecurityGroups(describeRequest)
+	if err != nil {
+		return fmt.Errorf("error querying security groups for ELB: %v", err)
+	}
+
+	taggedSecurityGroups, err := s.getTaggedSecurityGroups()
+	if err != nil {
+		return fmt.Errorf("error querying for tagged security groups: %v", err)
+	}
+
+	// Open the firewall from the load balancer to the instance
+	// We don't actually have a trivial way to know in advance which security group the instance is in
+	// (it is probably the minion security group, but we don't easily have that).
+	// However, we _do_ have the list of security groups on the instance records.
+
+	// Map containing the changes we want to make; true to add, false to remove
+	instanceSecurityGroupIds := map[string]bool{}
+
+	// Scan instances for groups we want open
+	for _, instance := range allInstances {
+		securityGroup, err := findSecurityGroupForInstance(instance, taggedSecurityGroups)
+		if err != nil {
+			return err
+		}
+
+		if securityGroup == nil {
+			glog.Warning("Ignoring instance without security group: ", orEmpty(instance.InstanceId))
+			continue
+		}
+		id := aws.StringValue(securityGroup.GroupId)
+		if id == "" {
+			glog.Warningf("found security group without id: %v", securityGroup)
+			continue
+		}
+
+		instanceSecurityGroupIds[id] = true
+	}
+
+	// Compare to actual groups
+	for _, actualGroup := range actualGroups {
+		actualGroupID := aws.StringValue(actualGroup.GroupId)
+		if actualGroupID == "" {
+			glog.Warning("Ignoring group without ID: ", actualGroup)
+			continue
+		}
+
+		adding, found := instanceSecurityGroupIds[actualGroupID]
+		if found && adding {
+			// We don't need to make a change; the permission is already in place
+			delete(instanceSecurityGroupIds, actualGroupID)
+		} else {
+			// This group is not needed by allInstances; delete it
+			instanceSecurityGroupIds[actualGroupID] = false
+		}
+	}
+
+	for instanceSecurityGroupId, add := range instanceSecurityGroupIds {
+		if add {
+			glog.V(2).Infof("Adding rule for traffic from the load balancer (%s) to instances (%s)", loadBalancerSecurityGroupId, instanceSecurityGroupId)
+		} else {
+			glog.V(2).Infof("Removing rule for traffic from the load balancer (%s) to instance (%s)", loadBalancerSecurityGroupId, instanceSecurityGroupId)
+		}
+		sourceGroupId := &ec2.UserIdGroupPair{}
+		sourceGroupId.GroupId = &loadBalancerSecurityGroupId
+
+		allProtocols := "-1"
+
+		permission := &ec2.IpPermission{}
+		permission.IpProtocol = &allProtocols
+		permission.UserIdGroupPairs = []*ec2.UserIdGroupPair{sourceGroupId}
+
+		permissions := []*ec2.IpPermission{permission}
+
+		if add {
+			changed, err := s.addSecurityGroupIngress(instanceSecurityGroupId, permissions)
+			if err != nil {
+				return err
+			}
+			if !changed {
+				glog.Warning("Allowing ingress was not needed; concurrent change? groupId=", instanceSecurityGroupId)
+			}
+		} else {
+			changed, err := s.removeSecurityGroupIngress(instanceSecurityGroupId, permissions)
+			if err != nil {
+				return err
+			}
+			if !changed {
+				glog.Warning("Revoking ingress was not needed; concurrent change? groupId=", instanceSecurityGroupId)
+			}
+		}
+	}
+
+	return nil
+}
+
 // EnsureLoadBalancerDeleted implements LoadBalancer.EnsureLoadBalancerDeleted.
 func (c *Cloud) EnsureLoadBalancerDeleted(clusterName string, service *api.Service) error {
 	loadBalancerName := cloudprovider.GetLoadBalancerName(service)
@@ -3052,6 +3289,93 @@ func (c *Cloud) EnsureLoadBalancerDeleted(clusterName string, service *api.Servi
 			glog.V(2).Info("Waiting for load-balancer to delete so we can delete security groups: ", service.Name)
 
 			time.Sleep(10 * time.Second)
+		}
+	}
+
+	return nil
+}
+
+// EnsureFirewallDeleted implements Firewall.EnsureFirewallDeleted.
+func (c *Cloud) EnsureFirewallDeleted(service *api.Service) error {
+	loadBalancerName := cloudprovider.GetLoadBalancerName(service)
+	// Collect the security groups to delete
+	var securityGroupID string
+
+	{
+		// Delete the security group(s) for the load balancer
+		// Note that this is annoying: the load balancer disappears from the API immediately, but it is still
+		// deleting in the background.  We get a DependencyViolation until the load balancer has deleted itself
+
+		sgName := "k8s-elb-" + loadBalancerName
+
+		request := &ec2.DescribeSecurityGroupsInput{
+			Filters: []*ec2.Filter{
+				{
+					Name: aws.String("vpc-id"),
+					Values: []*string{
+						aws.String(c.vpcID),
+					},
+				},
+				{
+					Name: aws.String("tag:KubernetesCluster"),
+					Values: []*string{
+						aws.String(c.cfg.Global.KubernetesClusterTag),
+					},
+				},
+				{
+					Name: aws.String("group-name"),
+					Values: []*string{
+						aws.String(sgName),
+					},
+				},
+			},
+		}
+		securityGroups, err := c.ec2.DescribeSecurityGroups(request)
+		if err != nil {
+			ignore := false
+			if awsError, ok := err.(awserr.Error); ok {
+				if awsError.Code() == "DependencyViolation" {
+					glog.V(2).Infof("Ignoring DependencyViolation while deleting load-balancer security group (%s), assuming because LB is in process of deleting", securityGroupID)
+					ignore = true
+				}
+			}
+			if !ignore {
+				return fmt.Errorf("error while deleting load balancer security group (%s): %v", securityGroupID, err)
+			}
+		}
+		if len(securityGroups) > 1 {
+			return fmt.Errorf("Multiple securitygroup found when EnsureFirewallDeleted for service %v", loadBalancerName)
+		}
+		for _, securityGroup := range securityGroups {
+			securityGroupID = *securityGroup.GroupId
+			break
+		}
+	}
+
+	{
+		// De-authorize the load balancer security group from the instances security group
+		err := c.updateInstanceSecurityGroupsForFirewall(securityGroupID, nil)
+		if err != nil {
+			glog.Error("Error deregistering load balancer from instance security groups: ", err)
+			return err
+		}
+	}
+
+	{
+		request := &ec2.DeleteSecurityGroupInput{}
+		request.GroupId = &securityGroupID
+		_, err := c.ec2.DeleteSecurityGroup(request)
+		if err != nil {
+			ignore := false
+			if awsError, ok := err.(awserr.Error); ok {
+				if awsError.Code() == "DependencyViolation" {
+					glog.V(2).Infof("Ignoring DependencyViolation while deleting load-balancer security group (%s), assuming because LB is in process of deleting", securityGroupID)
+					ignore = true
+				}
+			}
+			if !ignore {
+				return fmt.Errorf("error while deleting load balancer security group (%s): %v", securityGroupID, err)
+			}
 		}
 	}
 
