@@ -65,6 +65,20 @@ function create-resource-from-string() {
 # managed result is of that. Start everything below that directory.
 echo "== Kubernetes addon manager started at $(date -Is) with ADDON_CHECK_INTERVAL_SEC=${ADDON_CHECK_INTERVAL_SEC} =="
 
+# Load the kube-env, which has all the environment variables we care
+# about, in a flat yaml format.
+kube_env_yaml="/var/cache/kubernetes-install/kube_env.yaml"
+if [ -e "${kube_env_yaml}" ]; then
+  eval "$(python -c '
+import pipes,sys,yaml
+
+for k,v in yaml.load(sys.stdin).iteritems():
+  print("""readonly {var}={value}""".format(var = k, value = pipes.quote(str(v))))
+  print("""export {var}""".format(var = k))
+  ' < """${kube_env_yaml}""")"
+fi
+env | sort
+
 # Create the namespace that will be used to host the cluster-level add-ons.
 start_addon /opt/namespace.yaml 100 10 "" &
 

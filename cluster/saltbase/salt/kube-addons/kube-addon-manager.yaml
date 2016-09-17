@@ -20,7 +20,13 @@ spec:
     - mountPath: /etc/kubernetes/
       name: addons
       readOnly: true
+    - mountPath: /var/cache/kubernetes-install/
+      name: kube-env
+      readOnly: true
   volumes:
   - hostPath:
       path: /etc/kubernetes/
     name: addons
+  - hostPath:
+      path: /var/cache/kubernetes-install/
+    name: kube-env
