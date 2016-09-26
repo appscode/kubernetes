@@ -1,3 +1,8 @@
+{% set auth = "" -%}
+{% if pillar.get('secure_flannel_network', '').lower() == 'true' %}
+   {% set auth = "--remote-certfile=/srv/flannel/server.crt --remote-keyfile=/srv/flannel/server.key --remote-cafile=/srv/kubernetes/ca.crt" -%}
+{% endif %}
+
 touch /var/log/flannel.log:
   cmd.run:
     - creates: /var/log/flannel.log
@@ -37,3 +42,4 @@ touch /var/log/etcd_flannel.log:
         etcd_port: 4003
         etcd_peer_port: 2382
         cpulimit: '"100m"'
+        auth: {{ auth }}
