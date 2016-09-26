@@ -28,6 +28,18 @@
                 "hostPath": {
                     "path": "/etc/kubernetes/network.json"
                 }
+            },
+            {
+                "name": "cafile",
+                "hostPath": {
+                    "path": "/srv/kubernetes/ca.crt"
+                }
+            },
+            {
+                "name": "flannelcert",
+                "hostPath": {
+                    "path": "/srv/flannel"
+                }
             }
         ],
         "containers": [
@@ -53,7 +65,7 @@
                 "command": [
                     "/bin/sh",
                     "-c",
-                    "/opt/bin/flanneld -listen 0.0.0.0:10253 -etcd-endpoints http://127.0.0.1:{{ etcd_port }} -etcd-prefix /kubernetes.io/network 1>>/var/log/flannel_server.log 2>&1"
+                    "/opt/bin/flanneld -listen 0.0.0.0:10253 {{ auth }} -etcd-endpoints http://127.0.0.1:{{ etcd_port }} -etcd-prefix /kubernetes.io/network 1>>/var/log/flannel_server.log 2>&1"
                 ],
                 "ports": [
                     {
@@ -70,6 +82,16 @@
                     {
                         "name": "varlog",
                         "mountPath": "/var/log"
+                    },
+                    {
+                        "name": "cafile",
+                        "mountPath": "/srv/kubernetes/ca.crt",
+                        "readOnly": true
+                    },
+                    {
+                        "name": "flannelcert",
+                        "mountPath": "/srv/flannel",
+                        "readOnly": true
                     }
                 ]
             },
