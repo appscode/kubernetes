@@ -3,4 +3,10 @@
 {% else -%}
   {% set daemon_args = "-remote 127.0.0.1:10253" -%}
 {% endif -%}
-DAEMON_ARGS="{{daemon_args}}"
+
+{% set auth = "" -%}
+{% if pillar.get('secure_flannel_network', '').lower() == 'true' %}
+   {% set auth = "--remote-cafile=/srv/kubernetes/ca.crt --remote-keyfile=/srv/flannel/client.key --remote-certfile=/srv/flannel/client.crt" -%}
+{% endif %}
+
+DAEMON_ARGS="{{daemon_args}} {{auth}}"
