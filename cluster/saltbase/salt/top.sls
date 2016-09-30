@@ -62,6 +62,7 @@ base:
     - kube-scheduler
     - kube-client-tools
     - kube-master-addons
+    - kube-node-unpacker
     - kube-admission-controls
 {% if grains['cloud'] is defined and grains['cloud'] != 'vagrant' %}
     - logrotate
@@ -70,6 +71,9 @@ base:
 {% if grains['cloud'] is defined and grains['cloud'] in [ 'vagrant', 'gce', 'aws', 'photon-controller', 'openstack', 'azure-legacy'] %}
     - docker
     - kubelet
+{% endif %}
+{% if grains.kubelet_api_servers is defined %}
+    - kube-proxy
 {% endif %}
 {% if pillar.get('network_provider', '').lower() == 'opencontrail' %}
     - opencontrail-networking-master
