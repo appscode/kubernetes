@@ -10,12 +10,12 @@
 {% endif %}
 
 {% set public_ip = "" -%}
-{% if pillar['internal_ip'] is defined and grains.cloud is defined and grains.cloud in ['digitalocean', 'linode'] -%}
+{% if pillar['internal_ip'] is defined and grains.cloud is defined and grains.cloud in ['digitalocean', 'linode', 'vultr'] -%}
   {% set public_ip = "--public-ip=" + pillar['internal_ip'] -%}
 {% endif -%}
 
 {% set iface = "" -%}
-{% if pillar['host_iface'] is defined and grains.cloud is defined and grains.cloud in ['digitalocean', 'linode'] -%}
+{% if pillar['host_iface'] is defined and grains.cloud is defined and grains.cloud in ['digitalocean', 'linode', 'vultr'] -%}
   {% set iface = "--iface=" + pillar['host_iface'] -%}
 {% endif -%}
 
