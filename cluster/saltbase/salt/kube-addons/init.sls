@@ -11,6 +11,18 @@ addon-dir-create:
     - require:
         - file: addon-dir-delete
 
+{% if pillar.get('enable_dnssyncer', '').lower() == 'true' %}
+/etc/kubernetes/addons/appscode-dnssyncer:
+  file.recurse:
+    - source: salt://kube-addons/appscode-dnssyncer
+    - include_pat: E@(^.+\.yaml$|^.+\.json$)
+    - template: jinja
+    - user: root
+    - group: root
+    - dir_mode: 755
+    - file_mode: 644
+{% endif %}
+
 {% if pillar.get('enable_cluster_monitoring', '').lower() == 'influxdb' %}
 /etc/kubernetes/addons/cluster-monitoring/influxdb:
   file.recurse:
