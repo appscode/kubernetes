@@ -211,12 +211,12 @@ apache2-utils:
 
 {% if pillar.get('network_provider', '').lower() == 'kube-flannel' %}
 {% set public_ip = "" -%}
-{% if grains.internal_ip is defined and grains.cloud is defined and grains.cloud in ['digitalocean', 'linode'] -%}
+{% if grains.internal_ip is defined and grains.cloud is defined and grains.cloud in ['digitalocean', 'linode', 'vultr'] -%}
   {% set public_ip = "--public-ip=" + grains.internal_ip -%}
 {% endif -%}
 
 {% set iface = "" -%}
-{% if pillar['host_iface'] is defined and grains.cloud is defined and grains.cloud in ['digitalocean', 'linode'] -%}
+{% if pillar['host_iface'] is defined and grains.cloud is defined and grains.cloud in ['digitalocean', 'linode', 'vultr'] -%}
   {% set iface = "--iface=" + pillar['host_iface'] -%}
 {% endif -%}
 
