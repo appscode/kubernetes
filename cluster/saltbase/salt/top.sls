@@ -28,6 +28,9 @@ base:
     - cni
 {% elif pillar.get('network_provider', '').lower() == 'cni' %}
     - cni
+{% elif pillar.get('network_provider', '').lower() == 'kube-flannel' %}
+    - cni
+    - kube-flannel
 {% endif %}
 {% if grains['cloud'] is defined and grains['cloud'] == 'azure-legacy' %}
     - openvpn-client
@@ -69,6 +72,9 @@ base:
     - cni
 {% elif pillar.get('network_provider', '').lower() == 'cni' %}
     - cni
+{% elif pillar.get('network_provider', '').lower() == 'kube-flannel' %}
+    - cni
+    - kube-flannel
 {% endif %}
 {% if pillar.get('enable_l7_loadbalancing', '').lower() == 'glbc' %}
     - l7-gcp

@@ -39,6 +39,11 @@
   {% set debugging_handlers = "--enable-debugging-handlers=false" -%}
 {% endif -%}
 
+{% set node_ip = "" -%}
+{% if grains.internal_ip is defined -%}
+  {% set node_ip = "--node-ip=" + grains.internal_ip -%}
+{% endif -%}
+
 {% set cloud_provider = "" -%}
 {% if grains.cloud is defined and grains.cloud in ['aws', 'gce', 'azure'] -%}
   {% set cloud_provider = "--cloud-provider=" + grains.cloud -%}
@@ -141,6 +146,9 @@
   {% set network_plugin = "--network-plugin=opencontrail" %}
 {% elif pillar.get('network_provider', '').lower() == 'cni' %}
   {% set network_plugin = "--network-plugin=cni --network-plugin-dir=/etc/cni/net.d/" %}
+{% elif pillar.get('network_provider', '').lower() == 'kube-flannel' %}
+  {% set network_plugin = "--network-plugin=cni --network-plugin-dir=/etc/cni/net.d/" %}
+  {% set configure_cbr0 = "" -%}
 {%elif pillar.get('network_policy_provider', '').lower() == 'calico' and grains['roles'][0] != 'kubernetes-master' -%}
   {% set network_plugin = "--network-plugin=cni --network-plugin-dir=/etc/cni/net.d/" %}
 {% elif pillar.get('network_provider', '').lower() == 'kubenet' %}
@@ -194,4 +202,4 @@
 {% endif -%}
 
 # test_args has to be kept at the end, so they'll overwrite any prior configuration
-DAEMON_ARGS="{{daemon_args}} {{api_servers_with_port}} {{debugging_handlers}} {{hostname_override}} {{cloud_provider}} {{cloud_config}} {{config}} {{manifest_url}} --allow-privileged={{pillar['allow_privileged']}} {{log_level}} {{cluster_dns}} {{cluster_domain}} {{docker_root}} {{kubelet_root}} {{configure_cbr0}} {{non_masquerade_cidr}} {{cgroup_root}} {{system_container}} {{pod_cidr}} {{ master_kubelet_args }} {{cpu_cfs_quota}} {{network_plugin}} {{kubelet_port}} {{experimental_flannel_overlay}} {{ reconcile_cidr_args }} {{ hairpin_mode }} {{enable_custom_metrics}} {{runtime_container}} {{kubelet_container}} {{node_labels}} {{babysit_daemons}} {{eviction_hard}} {{feature_gates}} {{test_args}}"
+DAEMON_ARGS="{{daemon_args}} {{api_servers_with_port}} {{debugging_handlers}} {{hostname_override}} {{node_ip}} {{cloud_provider}} {{cloud_config}} {{config}} {{manifest_url}} --allow-privileged={{pillar['allow_privileged']}} {{log_level}} {{cluster_dns}} {{cluster_domain}} {{docker_root}} {{kubelet_root}} {{configure_cbr0}} {{non_masquerade_cidr}} {{cgroup_root}} {{system_container}} {{pod_cidr}} {{ master_kubelet_args }} {{cpu_cfs_quota}} {{network_plugin}} {{kubelet_port}} {{experimental_flannel_overlay}} {{ reconcile_cidr_args }} {{ hairpin_mode }} {{enable_custom_metrics}} {{runtime_container}} {{kubelet_container}} {{node_labels}} {{babysit_daemons}} {{eviction_hard}} {{feature_gates}} {{test_args}}"
