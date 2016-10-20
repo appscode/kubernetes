@@ -1,0 +1,6 @@
+{
+  "Network": "{{ pillar['cluster_cidr'] }}",
+  "Backend": {
+    "Type": "vxlan"
+  }
+}

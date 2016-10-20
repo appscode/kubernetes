@@ -1,0 +1,15 @@
+{% if grains['roles'][0] == 'kubernetes-master' -%}
+  {% set hairpin_mode = "false" -%}
+{% elif pillar['hairpin_mode'] is defined and pillar['hairpin_mode'] in ['promiscuous-bridge', 'hairpin-veth'] -%}
+  {% set hairpin_mode = "true" -%}
+{% endif -%}
+{
+  "name": "cbr0",
+  "type": "flannel",
+  "delegate": {
+    "bridge": "cbr0",
+    "isDefaultGateway": true,
+    "forceAddress": true,
+    "hairpinMode": {{hairpin_mode}}
+  }
+}
