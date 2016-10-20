@@ -1,0 +1,102 @@
+# Reuse kubeconfig file from
+{% set kubeconfig = "--kubeconfig=/var/lib/kube-flannel/kubeconfig" -%}
+{% if grains.api_servers is defined -%}
+  {% set api_servers = "--master=https://" + grains.api_servers -%}
+{% elif grains['roles'][0] == 'kubernetes-master' -%}
+  {% set master_ipv4 = salt['grains.get']('fqdn_ip4')[0] -%}
+  {% set api_servers = "--master=https://" + master_ipv4 -%}
+{% else -%}
+  {% set ips = salt['mine.get']('roles:kubernetes-master', 'network.ip_addrs', 'grain').values() -%}
+  {% set api_servers = "--master=https://" + ips[0][0] -%}
+{% endif -%}
+{% set api_servers_with_port = api_servers + ":6443" -%}
+
+{% if grains['roles'][0] == 'kubernetes-master' -%}
+  {% if grains.cloud in ['vagrant'] -%}
+    # Unless given a specific directive, disable kube-flannel on the master.
+    {% if grains.kubelet_api_servers is defined -%}
+      {% set api_servers_with_port = "--master=https://" + grains.kubelet_api_servers  + ":6443" -%}
+    {% else -%}
+      {% set api_servers_with_port = "" -%}
+    {% endif -%}
+  {% endif -%}
+{% endif -%}
+
+{% set public_ip = "" -%}
+
+{% set iface = "" -%}
+
+{% set log_level = pillar['log_level'] -%}
+
+# kube-flannel podspec
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kube-flannel
+  namespace: kube-system
+  labels:
+    tier: node
+    app: kube-flannel
+spec:
+  hostNetwork: true
+  containers:
+  - name: kube-flannel
+    image: appscode/flannel:v0.6.1
+    command:
+    - /bin/sh
+    - -c
+    - /opt/bin/flanneld --ip-masq {{public_ip}} {{iface}} --kube-subnet-mgr {{api_servers_with_port}} {{kubeconfig}} 1>>/var/log/kube-flannel.log 2>&1
+    securityContext:
+      privileged: true
+    env:
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    volumeMounts:
+    - mountPath: /etc/ssl/certs
+      name: ssl-certs-host
+      readOnly: true
+    - mountPath: /var/log
+      name: varlog
+      readOnly: false
+    - mountPath: /var/lib/kube-flannel/kubeconfig
+      name: kubeconfig
+      readOnly: false
+    - mountPath: /run
+      name: run
+    - mountPath: /etc/kube-flannel/
+      name: flannel-cfg
+      readOnly: false
+  - name: install-cni
+    image: busybox
+    command: [ "/bin/sh", "-c", "set -e -x; TMP=/etc/cni/net.d/.tmp-flannel-cfg; cp /etc/kube-flannel/cni-conf.json ${TMP}; mv ${TMP} /etc/cni/net.d/10-flannel.conf; while :; do sleep 3600; done" ]
+    volumeMounts:
+    - mountPath: /etc/cni/net.d
+      name: cni
+    - mountPath: /etc/kube-flannel/
+      name: flannel-cfg
+      readOnly: false
+  volumes:
+  - hostPath:
+      path: /usr/share/ca-certificates
+    name: ssl-certs-host
+  - hostPath:
+      path: /var/lib/kube-flannel/kubeconfig
+    name: kubeconfig
+  - hostPath:
+      path: /var/log
+    name: varlog
+  - hostPath:
+      path: /run
+    name: run
+  - hostPath:
+      path: /etc/cni/net.d
+    name: cni
+  - hostPath:
+      path: /etc/kube-flannel
+    name: flannel-cfg
