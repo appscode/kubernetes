@@ -26,6 +26,110 @@ SYSTEM_NAMESPACE=kube-system
 trusty_master=${TRUSTY_MASTER:-false}
 addons_dir=${ADDONS_DIR:-/etc/kubernetes/addons}
 
+function create-aws-storageclass() {
+  read -r -d '' storage <<EOF
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: io1-100
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: io1
+  iopsPerGB: "100"
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: io1-500
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: io1
+  iopsPerGB: "500"
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: io1-1000
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: io1
+  iopsPerGB: "1000"
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: io1-5000
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: io1
+  iopsPerGB: "5000"
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: io1-10000
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: io1
+  iopsPerGB: "10000"
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: io1-20000
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: io1
+  iopsPerGB: "20000"
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: gp2
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: st1
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: st1
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: sc1
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: sc1
+EOF
+  create-resource-from-string "${storage}" 100 10 "StorageClass-for-aws" "default" &
+}
+
+function create-gce-storageclass() {
+  read -r -d '' storage <<EOF
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: pd-standard
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-standard
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: pd-ssd
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-ssd
+EOF
+  create-resource-from-string "${storage}" 100 10 "StorageClass-for-gce" "default" &
+}
+
 function activate-extended-ingress() {
   read -r -d '' configyaml <<EOF
 metadata:
@@ -403,6 +507,12 @@ for obj in $(find /etc/kubernetes/admission-controls \( -name \*.yaml -o -name \
   start_addon "${obj}" 100 10 default &
   echo "++ obj ${obj} is created ++"
 done
+
+if [ "$PROVIDER" = "aws" ]; then
+    create-aws-storageclass &
+elif [ "$PROVIDER" = "gce" ]; then
+    create-gce-storageclass &
+fi
 
 # Activate Extended Ingress to allow TCP loadbalancing
 activate-extended-ingress
