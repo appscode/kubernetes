@@ -142,7 +142,7 @@
 {% set network_plugin = "" -%}
 {% if pillar.get('network_provider', '').lower() == 'opencontrail' %}
   {% set network_plugin = "--network-plugin=opencontrail" %}
-{% elif pillar.get('network_provider', '').lower() == 'cni' %}
+{% elif pillar.get('network_provider', '').lower() in ['cni', 'kube-flannel'] %}
   {% set network_plugin = "--network-plugin=cni --network-plugin-dir=/etc/cni/net.d/" %}
 {%elif pillar.get('network_policy_provider', '').lower() == 'calico' and grains['roles'][0] != 'kubernetes-master' -%}
   {% set network_plugin = "--network-plugin=cni --network-plugin-dir=/etc/cni/net.d/" %}

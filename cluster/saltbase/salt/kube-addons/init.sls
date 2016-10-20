@@ -208,3 +208,21 @@ apache2-utils:
     - user: root
     - group: root
     - mode: 755
+
+{% if pillar.get('network_provider', '').lower() == 'kube-flannel' %}
+{% set public_ip = "" -%}
+{% set iface = "" -%}
+
+/etc/kubernetes/addons/kube-flannel:
+  file.recurse:
+    - source: salt://kube-addons/kube-flannel
+    - include_pat: E@(^.+\.yaml$|^.+\.json$)
+    - template: jinja
+    - user: root
+    - group: root
+    - dir_mode: 755
+    - file_mode: 644
+    - context:
+      public_ip: {{ public_ip }}
+      iface: {{ iface }}
+{% endif %}
