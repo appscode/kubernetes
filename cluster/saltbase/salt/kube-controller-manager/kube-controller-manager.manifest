@@ -62,11 +62,7 @@
   {% endif -%}
 {% endif -%}
 
-{% set root_ca_file = "" -%}
-
-{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'vagrant', 'vsphere', 'photon-controller', 'openstack', 'azure-legacy']    %}
-   {% set root_ca_file = "--root-ca-file=/srv/kubernetes/ca.crt" -%}
-{% endif -%}
+{% set root_ca_file = "--root-ca-file=/srv/kubernetes/ca.crt" -%}
 
 {% set log_level = pillar['log_level'] -%}
 {% if pillar['controller_manager_test_log_level'] is defined -%}
