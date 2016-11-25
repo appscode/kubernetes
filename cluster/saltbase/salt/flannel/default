@@ -15,7 +15,7 @@
 {% endif -%}
 
 {% set iface = "" -%}
-{% if pillar['host_iface'] is defined and grains.cloud is defined and grains.cloud in ['digitalocean', 'linode', 'vultr', 'scaleway', 'softlayer', 'packet'] -%}
+{% if pillar['host_iface'] is defined and grains.cloud is defined and grains.cloud in ['digitalocean', 'linode', 'vultr', 'scaleway', 'softlayer', 'packet', 'hetzner'] -%}
   {% set iface = "--iface=" + pillar['host_iface'] -%}
 {% endif -%}
 

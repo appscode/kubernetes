@@ -1,4 +1,4 @@
-{% if grains['cloud'] is defined and grains.cloud in ['aws', 'gce', 'azure', 'vagrant', 'vsphere', 'photon-controller', 'openstack', 'digitalocean', 'linode', 'vultr', 'scaleway', 'softlayer', 'packet'] %}
+{% if grains['cloud'] is defined and grains.cloud in ['aws', 'gce', 'azure', 'vagrant', 'vsphere', 'photon-controller', 'openstack', 'digitalocean', 'linode', 'vultr', 'scaleway', 'softlayer', 'packet', 'hetzner'] %}
 # TODO: generate and distribute tokens on other cloud providers.
 /srv/kubernetes/known_tokens.csv:
   file.managed:

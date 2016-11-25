@@ -41,7 +41,7 @@
 {% set srv_kube_path = "/srv/kubernetes" -%}
 
 {% if grains.cloud is defined -%}
-  {% if grains.cloud not in ['vagrant', 'photon-controller', 'azure-legacy', 'digitalocean', 'linode', 'vultr', 'scaleway', 'softlayer', 'packet'] -%}
+  {% if grains.cloud not in ['vagrant', 'photon-controller', 'azure-legacy', 'digitalocean', 'linode', 'vultr', 'scaleway', 'softlayer', 'packet', 'hetzner'] -%}
     {% set cloud_provider = "--cloud-provider=" + grains.cloud -%}
   {% endif -%}
   {% set service_account_key = "--service-account-private-key-file=/srv/kubernetes/server.key" -%}
@@ -64,7 +64,7 @@
 
 {% set root_ca_file = "" -%}
 
-{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'azure', 'vagrant', 'vsphere', 'photon-controller', 'openstack', 'azure-legacy', 'digitalocean', 'linode', 'vultr', 'scaleway', 'softlayer', 'packet']    %}
+{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'azure', 'vagrant', 'vsphere', 'photon-controller', 'openstack', 'azure-legacy', 'digitalocean', 'linode', 'vultr', 'scaleway', 'softlayer', 'packet', 'hetzner']    %}
    {% set root_ca_file = "--root-ca-file=/srv/kubernetes/ca.crt" -%}
 {% endif -%}
 
