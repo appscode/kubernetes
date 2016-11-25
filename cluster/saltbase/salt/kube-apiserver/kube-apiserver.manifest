@@ -14,7 +14,7 @@
 {% set srv_sshproxy_path = "/srv/sshproxy" -%}
 
 {% if grains.cloud is defined -%}
-  {% if grains.cloud not in ['vagrant', 'photon-controller', 'azure-legacy', 'digitalocean', 'linode', 'vultr', 'scaleway', 'softlayer'] -%}
+  {% if grains.cloud not in ['vagrant', 'photon-controller', 'azure-legacy', 'digitalocean', 'linode', 'vultr', 'scaleway', 'softlayer', 'packet'] -%}
     {% set cloud_provider = "--cloud-provider=" + grains.cloud -%}
   {% endif -%}
 
@@ -80,7 +80,7 @@
 {% set client_ca_file = "" -%}
 
 {% set secure_port = "6443" -%}
-{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'azure', 'vagrant', 'vsphere', 'photon-controller', 'openstack', 'digitalocean', 'linode', 'vultr', 'scaleway', 'softlayer']    %}
+{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'azure', 'vagrant', 'vsphere', 'photon-controller', 'openstack', 'digitalocean', 'linode', 'vultr', 'scaleway', 'softlayer', 'packet']    %}
   {% set client_ca_file = "--client-ca-file=/srv/kubernetes/ca.crt" -%}
 {% endif -%}
 
@@ -93,7 +93,7 @@
 {% set basic_auth_file = "" -%}
 {% set authz_mode = "" -%}
 {% set abac_policy_file = "" -%}
-{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'azure', 'vagrant', 'vsphere', 'photon-controller', 'openstack', 'digitalocean', 'linode', 'vultr', 'scaleway', 'softlayer'] %}
+{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'azure', 'vagrant', 'vsphere', 'photon-controller', 'openstack', 'digitalocean', 'linode', 'vultr', 'scaleway', 'softlayer', 'packet'] %}
   {% set token_auth_file = " --token-auth-file=/srv/kubernetes/known_tokens.csv" -%}
   {% set basic_auth_file = " --basic-auth-file=/srv/kubernetes/basic_auth.csv" -%}
   {% set authz_mode = " --authorization-mode=ABAC" -%}
