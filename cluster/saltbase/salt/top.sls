@@ -107,7 +107,7 @@ base:
     - openvpn
     - nginx
 {% endif %}
-{% if grains['cloud'] is defined and grains['cloud'] in [ 'vagrant', 'gce', 'azure', 'aws', 'vsphere', 'photon-controller', 'openstack', 'azure-legacy', 'digitalocean', 'linode', 'vultr'] %}
+{% if grains['cloud'] is defined and grains['cloud'] in [ 'vagrant', 'gce', 'azure', 'aws', 'vsphere', 'photon-controller', 'openstack', 'azure-legacy', 'digitalocean', 'linode', 'vultr', 'scaleway'] %}
     - docker
     - kubelet
 {% endif %}
