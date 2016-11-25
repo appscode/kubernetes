@@ -12,7 +12,7 @@
 {% set api_servers_with_port = api_servers + ":6443" -%}
 
 {% if grains['roles'][0] == 'kubernetes-master' -%}
-  {% if grains.cloud in ['vagrant'] -%}
+  {% if grains.cloud in ['vagrant', 'digitalocean'] -%}
     # Unless given a specific directive, disable kube-flannel on the master.
     {% if grains.kubelet_api_servers is defined -%}
       {% set api_servers_with_port = "--master=https://" + grains.kubelet_api_servers  + ":6443" -%}
@@ -23,8 +23,14 @@
 {% endif -%}
 
 {% set public_ip = "" -%}
+{% if grains.internal_ip is defined and grains.cloud is defined and grains.cloud in ['digitalocean'] -%}
+  {% set public_ip = "--public-ip=" + grains.internal_ip -%}
+{% endif -%}
 
 {% set iface = "" -%}
+{% if pillar['host_iface'] is defined and grains.cloud is defined and grains.cloud in ['digitalocean'] -%}
+  {% set iface = "--iface=" + pillar['host_iface'] -%}
+{% endif -%}
 
 {% set log_level = pillar['log_level'] -%}
 
