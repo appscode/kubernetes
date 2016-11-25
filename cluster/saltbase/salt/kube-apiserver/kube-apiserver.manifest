@@ -14,7 +14,7 @@
 {% set srv_sshproxy_path = "/srv/sshproxy" -%}
 
 {% if grains.cloud is defined -%}
-  {% if grains.cloud not in ['vagrant', 'photon-controller', 'azure-legacy'] -%}
+  {% if grains.cloud in ['aws', 'gce'] -%}
     {% set cloud_provider = "--cloud-provider=" + grains.cloud -%}
   {% endif -%}
 
@@ -80,25 +80,17 @@
 {% set client_ca_file = "" -%}
 
 {% set secure_port = "6443" -%}
-{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'vagrant', 'vsphere', 'photon-controller', 'openstack']    %}
-  {% set client_ca_file = "--client-ca-file=/srv/kubernetes/ca.crt" -%}
-{% endif -%}
+{% set client_ca_file = "--client-ca-file=/srv/kubernetes/ca.crt" -%}
 
 {% set min_request_timeout = "" -%}
 {% if grains.minRequestTimeout is defined -%}
   {% set min_request_timeout = "--min-request-timeout=" + grains.minRequestTimeout -%}
 {% endif -%}
 
-{% set token_auth_file = " --token-auth-file=/dev/null" -%}
-{% set basic_auth_file = "" -%}
-{% set authz_mode = "" -%}
-{% set abac_policy_file = "" -%}
-{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'vagrant', 'vsphere', 'photon-controller', 'openstack']  %}
-  {% set token_auth_file = " --token-auth-file=/srv/kubernetes/known_tokens.csv" -%}
-  {% set basic_auth_file = " --basic-auth-file=/srv/kubernetes/basic_auth.csv" -%}
-  {% set authz_mode = " --authorization-mode=ABAC" -%}
-  {% set abac_policy_file = " --authorization-policy-file=/srv/kubernetes/abac-authz-policy.jsonl" -%}
-{% endif -%}
+{% set token_auth_file = " --token-auth-file=/srv/kubernetes/known_tokens.csv" -%}
+{% set basic_auth_file = " --basic-auth-file=/srv/kubernetes/basic_auth.csv" -%}
+{% set authz_mode = " --authorization-mode=ABAC" -%}
+{% set abac_policy_file = " --authorization-policy-file=/srv/kubernetes/abac-authz-policy.jsonl" -%}
 
 {% set webhook_authentication_config = "" -%}
 {% set webhook_authn_config_mount = "" -%}

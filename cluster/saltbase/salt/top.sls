@@ -95,10 +95,8 @@ base:
     - openvpn
     - nginx
 {% endif %}
-{% if grains['cloud'] is defined and grains['cloud'] in [ 'vagrant', 'gce', 'aws', 'vsphere', 'photon-controller', 'openstack', 'azure-legacy'] %}
     - docker
     - kubelet
-{% endif %}
 {% if pillar.get('enable_cluster_vpn', '').lower() == 'h2h-psk' %}
     - strongswan-h2h-psk
 {% endif %}
