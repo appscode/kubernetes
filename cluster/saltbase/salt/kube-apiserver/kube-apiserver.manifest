@@ -22,7 +22,7 @@
     {% set cloud_config = "--cloud-config=" + grains.cloud_config -%}
   {% endif -%}
 
-  {% if grains.cloud in [ 'vsphere', 'aws', 'gce' ] and grains.cloud_config is defined -%}
+  {% if grains.cloud in [ 'vsphere', 'aws', 'gce', 'azure' ] and grains.cloud_config is defined -%}
     {% set cloud_config = "--cloud-config=" + grains.cloud_config -%}
     {% set cloud_config_mount = "{\"name\": \"cloudconfigmount\",\"mountPath\": \"" + grains.cloud_config + "\", \"readOnly\": true}," -%}
     {% set cloud_config_volume = "{\"name\": \"cloudconfigmount\",\"hostPath\": {\"path\": \"" + grains.cloud_config + "\"}}," -%}
@@ -80,7 +80,7 @@
 {% set client_ca_file = "" -%}
 
 {% set secure_port = "6443" -%}
-{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'vagrant', 'vsphere', 'photon-controller', 'openstack']    %}
+{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'azure', 'vagrant', 'vsphere', 'photon-controller', 'openstack']    %}
   {% set client_ca_file = "--client-ca-file=/srv/kubernetes/ca.crt" -%}
 {% endif -%}
 
@@ -93,7 +93,7 @@
 {% set basic_auth_file = "" -%}
 {% set authz_mode = "" -%}
 {% set abac_policy_file = "" -%}
-{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'vagrant', 'vsphere', 'photon-controller', 'openstack']  %}
+{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'azure', 'vagrant', 'vsphere', 'photon-controller', 'openstack']  %}
   {% set token_auth_file = " --token-auth-file=/srv/kubernetes/known_tokens.csv" -%}
   {% set basic_auth_file = " --basic-auth-file=/srv/kubernetes/basic_auth.csv" -%}
   {% set authz_mode = " --authorization-mode=ABAC" -%}

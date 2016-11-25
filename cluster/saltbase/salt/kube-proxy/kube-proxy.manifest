@@ -11,7 +11,7 @@
 {% set api_servers_with_port = api_servers + ":6443" -%}
 
 {% if grains['roles'][0] == 'kubernetes-master' -%}
-  {% if grains.cloud in ['aws', 'gce', 'vagrant'] -%}
+  {% if grains.cloud in ['aws', 'gce', 'azure', 'vagrant'] -%}
     # Unless given a specific directive, disable kube-proxy on the master.
     {% if grains.kubelet_api_servers is defined -%}
       {% set api_servers_with_port = "--master=https://" + grains.kubelet_api_servers  + ":6443" -%}

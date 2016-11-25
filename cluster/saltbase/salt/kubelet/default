@@ -23,7 +23,7 @@
 
 {% set reconcile_cidr_args = "" -%}
 {% if grains['roles'][0] == 'kubernetes-master' -%}
-  {% if grains.cloud in ['aws', 'gce', 'vagrant', 'vsphere', 'photon-controller', 'openstack', 'azure-legacy'] -%}
+  {% if grains.cloud in ['aws', 'gce', 'azure', 'vagrant', 'vsphere', 'photon-controller', 'openstack', 'azure-legacy'] -%}
 
     # Unless given a specific directive, disable registration for the kubelet
     # running on the master.
@@ -48,7 +48,7 @@
 {% endif -%}
 
 {% set cloud_config = "" -%}
-{% if grains.cloud in [ 'openstack', 'vsphere' ] and grains.cloud_config is defined -%}
+{% if grains.cloud in [ 'openstack', 'vsphere', 'azure' ] and grains.cloud_config is defined -%}
   {% set cloud_config = "--cloud-config=" + grains.cloud_config -%}
 {% endif -%}
 
@@ -167,7 +167,7 @@
 {% endif -%}
 
 {% set babysit_daemons = "" -%}
-{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce' ]  %}
+{% if grains['cloud'] is defined and grains.cloud in [ 'aws', 'gce', 'azure' ]  %}
   {% set babysit_daemons = "--babysit-daemons=true" -%}
 {% endif -%}
 
