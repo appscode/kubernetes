@@ -80,7 +80,7 @@ func GetInstanceProviderID(cloud Interface, nodeName types.NodeName) (string, er
 
 // Firewall is an abstract, pluggable interface for firewalls.
 type Firewall interface {
-	// EnsureFirewall creates a new firewall 'name', or updates the existing one.
+	// EnsureFirewall creates and/or update firewall rules.
 	// Implementations must treat the *api.Service parameter as read-only and not modify it.
 	EnsureFirewall(service *api.Service, hostname string) error
 
