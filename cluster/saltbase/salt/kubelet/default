@@ -88,6 +88,9 @@
 {% if pillar['allocate_node_cidrs'] is defined -%}
   {% set configure_cbr0 = "--configure-cbr0=" + pillar['allocate_node_cidrs'] -%}
 {% endif -%}
+{% if pillar.get('network_provider', '').lower() == 'hostnet' -%}
+  {% set configure_cbr0 = "--configure-cbr0=false" -%}
+{% endif -%}
 
 {% set non_masquerade_cidr = "" -%}
 {% if pillar.get('non_masquerade_cidr','') -%}
