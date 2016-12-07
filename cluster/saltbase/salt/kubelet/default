@@ -27,8 +27,8 @@
   # running on the master.
   {% if grains.kubelet_api_servers is defined -%}
     {% set api_servers_with_port = "--api-servers=https://" + grains.kubelet_api_servers + ":6443" -%}
-    {% set master_kubelet_args = master_kubelet_args + "--register-schedulable=false" -%}
-    {% set reconcile_cidr_args =  "--reconcile-cidr=false" -%}
+    {% set master_kubelet_args = master_kubelet_args + "--register-schedulable=" + grains.register_schedulable -%}
+    {% set reconcile_cidr_args =  "--reconcile-cidr=" + grains.register_schedulable -%}
   {% else -%}
     {% set api_servers_with_port = "" -%}
   {% endif -%}
@@ -167,6 +167,9 @@
 # running into the kernel bug described in #20096.
 {% if grains['roles'][0] == 'kubernetes-master' -%}
   {% set hairpin_mode = "--hairpin-mode=none" -%}
+  {% if grains.register_schedulable == 'true' -%}
+    {% set hairpin_mode = "--hairpin-mode=promiscuous-bridge" -%}
+  {% endif -%}
 {% elif pillar['hairpin_mode'] is defined and pillar['hairpin_mode'] in ['promiscuous-bridge', 'hairpin-veth', 'none'] -%}
   {% set hairpin_mode = "--hairpin-mode=" + pillar['hairpin_mode'] -%}
 {% endif -%}
