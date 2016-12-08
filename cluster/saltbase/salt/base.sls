@@ -61,3 +61,8 @@ net.ipv4.neigh.default.gc_thresh1:
     - user: root
     - group: root
     - mode: 644
+
+install-baler:
+  cmd.run:
+    - name: 'curl -Lo baler https://raw.githubusercontent.com/appscode/baler/master/baler.py && chmod +x baler'
+    - cwd: /usr/local/bin
