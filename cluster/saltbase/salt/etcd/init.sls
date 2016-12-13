@@ -16,11 +16,9 @@ delete_etcd_default:
   file.absent:
     - name: /etc/default/etcd
 
-{% if pillar.get('is_systemd') %}
 delete_etcd_service_file:
   file.absent:
     - name: {{ pillar.get('systemd_system_path') }}/etcd.service
-{% endif %}
 
 delete_etcd_initd:
   file.absent:

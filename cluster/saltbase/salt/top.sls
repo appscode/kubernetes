@@ -46,7 +46,6 @@ base:
     - e2e-image-puller
 {% endif %}
     - logrotate
-    - supervisor
 {% if pillar.get('network_policy_provider', '').lower() == 'calico' %}
     - calico.node
 {% endif %}
@@ -66,7 +65,6 @@ base:
     - kube-apiserver
     - kube-controller-manager
     - kube-scheduler
-    - supervisor
     - kube-client-tools
     - kube-master-addons
     - kube-admission-controls
