@@ -97,6 +97,11 @@
 {% set authz_mode = " --authorization-mode=ABAC" -%}
 {% set abac_policy_file = " --authorization-policy-file=/srv/kubernetes/abac-authz-policy.jsonl" -%}
 
+{% set rbac_super_user = "" -%}
+{% if pillar.get('enable_rbac_authz', '').lower() == 'true' %}
+  {% set authz_mode = authz_mode + ",RBAC" -%}
+{% endif %}
+
 {% set webhook_authentication_config = "" -%}
 {% set webhook_authn_config_mount = "" -%}
 {% set webhook_authn_config_volume = "" -%}
