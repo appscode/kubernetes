@@ -1,0 +1,134 @@
+---
+apiVersion: appscode.com/v1beta1
+kind: Alert
+metadata:
+  name: check-kube-api
+  namespace: kube-system
+  labels:
+    alert.appscode.com/objectType: cluster
+spec:
+  CheckCommand: json_path
+  IcingaParam:
+    AlertIntervalSec: 300
+    CheckIntervalSec: 60
+  NotifierParams:
+  - Method: EMAIL
+    State: CRITICAL
+    UserUid: {{ pillar['appscode_cluster_creator'] }}
+  Vars:
+    url: https://{{ pillar['instance_prefix'] }}-{{ pillar['appscode_ns'] }}.{{ pillar['appscode_cluster_root_domain'] }}:6443
+    query: ".paths"
+    critical: "length == 0"
+    in_cluster_config: true
+---
+apiVersion: appscode.com/v1beta1
+kind: Alert
+metadata:
+  name: check-component-status
+  namespace: kube-system
+  labels:
+    alert.appscode.com/objectType: cluster
+spec:
+  CheckCommand: component_status
+  IcingaParam:
+    AlertIntervalSec: 300
+    CheckIntervalSec: 60
+  NotifierParams:
+  - Method: EMAIL
+    State: CRITICAL
+    UserUid: {{ pillar['appscode_cluster_creator'] }}
+---
+apiVersion: appscode.com/v1beta1
+kind: Alert
+metadata:
+  name: check-icinga-dns
+  namespace: kube-system
+  labels:
+    alert.appscode.com/objectType: services
+    alert.appscode.com/objectName: appscode-alert
+spec:
+  CheckCommand: any_http
+  IcingaParam:
+    AlertIntervalSec: 300
+    CheckIntervalSec: 60
+  NotifierParams:
+  - Method: EMAIL
+    State: CRITICAL
+    UserUid: {{ pillar['appscode_cluster_creator'] }}
+  Vars:
+    http_vhost: {{ pillar['instance_prefix'] }}-{{ pillar['appscode_ns'] }}.{{ pillar['appscode_cluster_root_domain'] }}
+    http_uri: "/icingaweb2"
+    http_ssl: true
+---
+apiVersion: appscode.com/v1beta1
+kind: Alert
+metadata:
+  name: check-kibana-dns
+  namespace: kube-system
+  labels:
+    alert.appscode.com/objectType: services
+    alert.appscode.com/objectName: kibana-logging
+spec:
+  CheckCommand: any_http
+  IcingaParam:
+    AlertIntervalSec: 300
+    CheckIntervalSec: 60
+  NotifierParams:
+  - Method: EMAIL
+    State: CRITICAL
+    UserUid: {{ pillar['appscode_cluster_creator'] }}
+  Vars:
+    http_vhost: {{ pillar['instance_prefix'] }}-{{ pillar['appscode_ns'] }}.{{ pillar['appscode_cluster_root_domain'] }}
+    http_uri: "/kibana"
+    http_ssl: true
+---
+apiVersion: appscode.com/v1beta1
+kind: Alert
+metadata:
+  name: check-node-status
+  namespace: kube-system
+  labels:
+    alert.appscode.com/objectType: cluster
+spec:
+  CheckCommand: node_status
+  IcingaParam:
+    AlertIntervalSec: 300
+    CheckIntervalSec: 60
+  NotifierParams:
+  - Method: EMAIL
+    State: CRITICAL
+    UserUid: {{ pillar['appscode_cluster_creator'] }}
+---
+apiVersion: appscode.com/v1beta1
+kind: Alert
+metadata:
+  name: check-all-pod-status
+  namespace: kube-system
+  labels:
+    alert.appscode.com/objectType: cluster
+spec:
+  CheckCommand: pod_status
+  IcingaParam:
+    AlertIntervalSec: 300
+    CheckIntervalSec: 60
+  NotifierParams:
+  - Method: EMAIL
+    State: CRITICAL
+    UserUid: {{ pillar['appscode_cluster_creator'] }}
+---
+apiVersion: appscode.com/v1beta1
+kind: Alert
+metadata:
+  name: check-node-disk-stat
+  namespace: kube-system
+  labels:
+    alert.appscode.com/objectType: cluster
+spec:
+  CheckCommand: node_disk
+  IcingaParam:
+    AlertIntervalSec: 300
+    CheckIntervalSec: 60
+  NotifierParams:
+  - Method: EMAIL
+    State: CRITICAL
+    UserUid: {{ pillar['appscode_cluster_creator'] }}
