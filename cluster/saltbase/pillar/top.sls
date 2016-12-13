@@ -1,6 +1,6 @@
 base:
   '*':
-    - mine
+    - env
     - cluster-params
     - logging
     - docker-images
