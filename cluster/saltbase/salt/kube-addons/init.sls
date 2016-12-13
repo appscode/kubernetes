@@ -263,6 +263,18 @@ addon-dir-create:
     - makedirs: True
 {% endif %}
 
+{% if pillar.get('network_provider', '').lower() == 'kube-flannel' %}
+/etc/kubernetes/addons/kube-flannel:
+  file.recurse:
+    - source: salt://kube-addons/kube-flannel
+    - include_pat: E@^.+\.yaml$
+    - template: jinja
+    - user: root
+    - group: root
+    - dir_mode: 755
+    - file_mode: 644
+{% endif %}
+
 /etc/kubernetes/manifests/kube-addon-manager.yaml:
   file.managed:
     - source: salt://kube-addons/kube-addon-manager.yaml
