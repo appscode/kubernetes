@@ -210,6 +210,17 @@ addon-dir-create:
     - makedirs: True
 {% endif %}
 
+{% if pillar.get('enable_cluster_vpn', '').lower() == 'h2h-psk' -%}
+/etc/kubernetes/addons/appscode-strongswan/strongswan.yaml:
+  file.managed:
+    - source: salt://appscode-strongswan/strongswan.yaml
+    - template: jinja
+    - user: root
+    - group: root
+    - file_mode: 644
+    - makedirs: True
+{% endif -%}
+
 /etc/kubernetes/manifests/kube-addon-manager.yaml:
   file.managed:
     - source: salt://kube-addons/kube-addon-manager.yaml
