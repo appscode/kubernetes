@@ -26,6 +26,13 @@ spec:
     - mountPath: /var/log
       name: varlog
       readOnly: false
+    - mountPath: /var/cache/kubernetes-install/
+      name: kube-env
+      readOnly: true
+    - mountPath: /srv/
+      name: srv
+    - mountPath: /var/run/secrets/appscode/
+      name: api-token
   volumes:
   - hostPath:
       path: /etc/kubernetes/
@@ -33,3 +40,12 @@ spec:
   - hostPath:
       path: /var/log
     name: varlog
+  - hostPath:
+      path: /var/cache/kubernetes-install/
+    name: kube-env
+  - hostPath:
+      path: /srv/
+    name: srv
+  - hostPath:
+      path: /var/run/secrets/appscode/
+    name: api-token
