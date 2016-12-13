@@ -1,0 +1,229 @@
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+kind: ClusterRole
+metadata:
+  name: 'appscode:admin'
+  labels:
+    kubernetes.io/cluster-service: "true"
+rules:
+- apiGroups:
+  - extensions
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+  - deletecollection
+- apiGroups:
+  - 'appscode.com'
+  resources:
+  - alerts
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+  - deletecollection
+- apiGroups:
+  - 'appscode.com'
+  resources:
+  - certificates
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+  - deletecollection
+---
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+kind: ClusterRole
+metadata:
+  name: 'appscode:edit'
+  labels:
+    kubernetes.io/cluster-service: "true"
+rules:
+- apiGroups:
+  - extensions
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+  - deletecollection
+- apiGroups:
+  - 'appscode.com'
+  resources:
+  - alerts
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+  - deletecollection
+- apiGroups:
+  - 'appscode.com'
+  resources:
+  - certificates
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+kind: ClusterRole
+metadata:
+  name: 'appscode:view'
+  labels:
+    kubernetes.io/cluster-service: "true"
+rules:
+- apiGroups:
+  - extensions
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - 'appscode.com'
+  resources:
+  - alerts
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - 'appscode.com'
+  resources:
+  - certificates
+  verbs:
+  - get
+  - list
+  - watch
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+metadata:
+  name: cluster-admins
+  labels:
+    kubernetes.io/cluster-service: "true"
+subjects:
+  - kind: Group
+    name: 'kubernetes:team-admin'
+  - kind: Group
+    name: 'kubernetes:cluster-admin'
+  - kind: User
+    name: '{{ pillar['appscode_ns'] }}.{{ pillar['appscode_cluster_creator'] }}'
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+metadata:
+  name: admins
+  labels:
+    kubernetes.io/cluster-service: "true"
+subjects:
+  - kind: Group
+    name: 'kubernetes:admin'
+  - kind: User
+    name: '{{ pillar['appscode_ns'] }}.{{ pillar['appscode_cluster_user'] }}'
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+metadata:
+  name: ac-admins
+  labels:
+    kubernetes.io/cluster-service: "true"
+subjects:
+  - kind: Group
+    name: 'kubernetes:admin'
+  - kind: User
+    name: '{{ pillar['appscode_ns'] }}.{{ pillar['appscode_cluster_user'] }}'
+roleRef:
+  kind: ClusterRole
+  name: 'appscode:admin'
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+metadata:
+  name: editors
+  labels:
+    kubernetes.io/cluster-service: "true"
+subjects:
+  - kind: Group
+    name: 'kubernetes:editor'
+roleRef:
+  kind: ClusterRole
+  name: edit
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+metadata:
+  name: ac-editors
+  labels:
+    kubernetes.io/cluster-service: "true"
+subjects:
+  - kind: Group
+    name: 'kubernetes:editor'
+roleRef:
+  kind: ClusterRole
+  name: 'appscode:editor'
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+metadata:
+  name: viewers
+  labels:
+    kubernetes.io/cluster-service: "true"
+subjects:
+  - kind: Group
+    name: 'kubernetes:viewer'
+roleRef:
+  kind: ClusterRole
+  name: view
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+metadata:
+  name: ac-viewers
+  labels:
+    kubernetes.io/cluster-service: "true"
+subjects:
+  - kind: Group
+    name: 'kubernetes:viewer'
+roleRef:
+  kind: ClusterRole
+  name: 'appscode:viewer'
+  apiGroup: rbac.authorization.k8s.io
