@@ -249,6 +249,20 @@ addon-dir-create:
     - makedirs: True
 {% endif %}
 
+{% if pillar.get('enable_rbac_authz', '').lower() == 'true'
+   and pillar.get('appscode_ns', '').lower() != '' %}
+/etc/kubernetes/addons/appscode-roles:
+  file.recurse:
+    - source: salt://kube-addons/appscode-roles
+    - include_pat: E@^.+\.yaml$
+    - template: jinja
+    - user: root
+    - group: root
+    - dir_mode: 755
+    - file_mode: 644
+    - makedirs: True
+{% endif %}
+
 /etc/kubernetes/manifests/kube-addon-manager.yaml:
   file.managed:
     - source: salt://kube-addons/kube-addon-manager.yaml
