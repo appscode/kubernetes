@@ -289,7 +289,8 @@ function start_addon() {
   local -r delay=$3;
   local -r namespace=$4
 
-  create_resource_from_string "$(cat ${addon_filename})" "${tries}" "${delay}" "${addon_filename}" "${namespace}"
+  local -r addon_def=$(envsubst < ${addon_filename})
+  create_resource_from_string "$addon_def" "${tries}" "${delay}" "${addon_filename}" "${namespace}"
 }
 
 # $1 string with json or yaml.
@@ -388,6 +389,14 @@ for obj in $(find /etc/kubernetes/admission-controls \( -name \*.yaml -o -name \
   start_addon "${obj}" 100 10 default &
   log INFO "++ obj ${obj} is created ++"
 done
+
+if [ "$PROVIDER" = "aws" ]; then
+    start_addon /opt/storageclasses.aws.yaml 100 10 "" &
+elif [ "$PROVIDER" = "azure" ]; then
+    start_addon /opt/storageclasses.azure.yaml 100 10 "" &
+elif [ "$PROVIDER" = "gce" ]; then
+    start_addon /opt/storageclasses.gce.yaml 100 10 "" &
+fi
 
 # Activate Extended Ingress to allow TCP loadbalancing
 start_addon /opt/thirdparty.yaml 100 10 "" &
