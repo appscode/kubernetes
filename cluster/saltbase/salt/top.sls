@@ -17,6 +17,9 @@ base:
 {% if grains['cloud'] is defined and not grains.cloud in [ 'gce', 'gke' ] %}
     - kube-master-dns
 {% endif %}
+{% if pillar.get('enable_cluster_vpn', '').lower() == 'h2h-psk' %}
+    - appscode-strongswan
+{% endif %}
     - docker
 {% if pillar.get('network_policy_provider', '').lower() == 'calico' %}
     - cni
@@ -59,6 +62,9 @@ base:
     - match: grain
 {% if grains['cloud'] is defined and not grains.cloud in [ 'gce', 'gke' ] %}
     - kube-master-dns
+{% endif %}
+{% if pillar.get('enable_cluster_vpn', '').lower() == 'h2h-psk' %}
+    - appscode-strongswan
 {% endif %}
     - etcd
 {% if pillar.get('network_provider', '').lower() == 'kubenet' %}
