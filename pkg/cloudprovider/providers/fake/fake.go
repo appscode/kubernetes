@@ -100,6 +100,11 @@ func (f *FakeCloud) ScrubDNS(nameservers, searches []string) (nsOut, srchOut []s
 	return nameservers, searches
 }
 
+// Firewall returns a nil Firewall.
+func (f *FakeCloud) Firewall() (cloudprovider.Firewall, bool) {
+	return nil, false
+}
+
 // LoadBalancer returns a fake implementation of LoadBalancer.
 // Actually it just returns f itself.
 func (f *FakeCloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {

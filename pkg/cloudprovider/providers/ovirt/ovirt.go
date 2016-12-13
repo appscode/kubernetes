@@ -130,6 +130,11 @@ func (v *OVirtCloud) ScrubDNS(nameservers, searches []string) (nsOut, srchOut []
 	return nameservers, searches
 }
 
+// Firewall returns an implementation of Firewall for oVirt cloud
+func (v *OVirtCloud) Firewall() (cloudprovider.Firewall, bool) {
+	return nil, false
+}
+
 // LoadBalancer returns an implementation of LoadBalancer for oVirt cloud
 func (v *OVirtCloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	return nil, false
