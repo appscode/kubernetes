@@ -1,0 +1,75 @@
+{
+  "apiVersion": "appscode.com/v1beta1",
+  "kind": "Ingress",
+  "metadata": {
+    "name": "default-lb",
+    "namespace": "appscode",
+    "annotations": {
+      "ingress.appscode.com/type": "Daemon",
+      "ingress.appscode.com/daemon.nodeSelector": "kubernetes.io/role=master"
+    }
+  },
+  "spec": {
+    "rules": [
+      {
+        "host": "{{ pillar['instance_prefix'] }}-{{ pillar['appscode_ns'] }}.{{ pillar['appscode_cluster_root_domain'] }}",
+        "http": {
+          "paths": [
+            {
+              "path": "/icingaweb2",
+              "backend": {
+                "serviceName": "appscode-icinga.kube-system",
+                "servicePort": "80"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "host": "{{ pillar['instance_prefix'] }}-{{ pillar['appscode_ns'] }}.{{ pillar['appscode_cluster_root_domain'] }}",
+        "http": {
+          "paths": [
+            {
+              "path": "/kibana",
+              "backend": {
+                "serviceName": "kibana-logging.kube-system",
+                "servicePort": "5601"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "host": "{{ pillar['instance_prefix'] }}-{{ pillar['appscode_ns'] }}.{{ pillar['appscode_cluster_root_domain'] }}",
+        "tcp": [
+          {
+            "backend": {
+              "serviceName": "monitoring-influxdb.kube-system",
+              "servicePort": "8083"
+            },
+            "pemName": "tls.pem",
+            "port": "8083",
+            "secretName": "appscode-default-lb-cert"
+          },
+          {
+            "backend": {
+              "serviceName": "monitoring-influxdb.kube-system",
+              "servicePort": "8086"
+            },
+            "pemName": "tls.pem",
+            "port": "8086",
+            "secretName": "appscode-default-lb-cert"
+          }
+        ]
+      }
+    ],
+    "tls": [
+      {
+        "hosts": [
+          "{{ pillar['instance_prefix'] }}-{{ pillar['appscode_ns'] }}.{{ pillar['appscode_cluster_root_domain'] }}"
+        ],
+        "secretName": "appscode-default-lb-cert"
+      }
+    ]
+  }
+}
