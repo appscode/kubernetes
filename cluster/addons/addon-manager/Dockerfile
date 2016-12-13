@@ -23,5 +23,8 @@ ADD namespace.yaml /opt/
 ADD kubectl /usr/local/bin/
 
 ADD thirdparty.yaml /opt/
+ADD storageclasses.aws.yaml /opt/
+ADD storageclasses.azure.yaml /opt/
+ADD storageclasses.gce.yaml /opt/
 
 CMD ["/opt/kube-addons.sh"]
