@@ -98,10 +98,8 @@ base:
     - openvpn
     - nginx
 {% endif %}
-{% if grains['cloud'] is defined and grains['cloud'] in [ 'vagrant', 'gce', 'aws', 'vsphere', 'photon-controller', 'openstack', 'azure-legacy'] %}
     - docker
     - kubelet
-{% endif %}
 {% if grains.kubelet_api_servers is defined %}
     - kube-proxy
 {% endif %}

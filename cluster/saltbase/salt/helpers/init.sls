@@ -1,4 +1,4 @@
-{% if grains['cloud'] is defined and grains['cloud'] == 'aws' %}
+{% if grains['cloud'] is defined and grains['cloud'] != 'gce' %}
 /usr/share/google:
   file.directory:
     - user: root
