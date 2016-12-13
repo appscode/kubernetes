@@ -20,6 +20,7 @@ KUBECTL_VERSION?=v1.5.4
 
 ifeq ($(ARCH),amd64)
 	BASEIMAGE?=python:2.7-slim
+	INSTALL_TOOLS?=RUN set -x \&\& apt-get update \&\& apt-get install -y --no-install-recommends ca-certificates curl gettext-base \&\& rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man /tmp/*
 endif
 ifeq ($(ARCH),arm)
 	BASEIMAGE?=armel/debian
@@ -40,6 +41,7 @@ build:
 	curl -sSL --retry 5 https://storage.googleapis.com/kubernetes-release/release/$(KUBECTL_VERSION)/bin/linux/$(ARCH)/kubectl > $(TEMP_DIR)/kubectl
 	chmod +x $(TEMP_DIR)/kubectl
 	cd $(TEMP_DIR) && sed -i.back "s|BASEIMAGE|$(BASEIMAGE)|g" Dockerfile
+	cd $(TEMP_DIR) && sed -i.back "s|INSTALL_TOOLS|$(INSTALL_TOOLS)|g" Dockerfile
 	docker build --pull -t $(IMAGE)-$(ARCH):$(VERSION) $(TEMP_DIR)
 
 push: build

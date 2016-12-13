@@ -219,6 +219,21 @@ EOF
     create_appscode_secret "${influx}" "influx" ".admin" "${SYSTEM_NAMESPACE}"
     echo "${influx}" > /srv/influxdb/secrets/.admin
   fi
+
+  if [ -n "$DEFAULT_LB_CERT" ] && [ -n "$DEFAULT_LB_KEY" ]; then
+    read -r -d '' lbsecretyaml <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: appscode-default-lb-cert
+  namespace: appscode
+type: Opaque
+data:
+  tls.crt: ${DEFAULT_LB_CERT}
+  tls.key: ${DEFAULT_LB_KEY}
+EOF
+    create_resource_from_string "${lbsecretyaml}" 100 10 "Secret-for-default-lb-cert" "appscode" &
+  fi
 }
 
 # $1 filename of addon to start.
