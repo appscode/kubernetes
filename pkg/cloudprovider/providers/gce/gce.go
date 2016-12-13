@@ -410,6 +410,11 @@ func (gce *GCECloud) ScrubDNS(nameservers, searches []string) (nsOut, srchOut []
 	return nameservers, srchOut
 }
 
+// Firewall returns an implementation of Firewall for Google Compute Engine.
+func (gce *GCECloud) Firewall() (cloudprovider.Firewall, bool) {
+	return gce, true
+}
+
 // LoadBalancer returns an implementation of LoadBalancer for Google Compute Engine.
 func (gce *GCECloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	return gce, true
@@ -885,6 +890,71 @@ func (gce *GCECloud) ensureHttpHealthCheck(name, path string, port int32) (hc *c
 	return hc, nil
 }
 
+// EnsureFirewall is an implementation of LoadBalancer.EnsureLoadBalancer.
+// Our load balancers in GCE consist of four separate GCE resources - a static
+// IP address, a firewall rule, a target pool, and a forwarding rule. This
+// function has to manage all of them.
+// Due to an interesting series of design decisions, this handles both creating
+// new load balancers and updating existing load balancers, recognizing when
+// each is needed.
+func (gce *GCECloud) EnsureFirewall(apiService *api.Service, hostName string) error {
+	if hostName == "" {
+		return fmt.Errorf("Cannot EnsureFirewall() with no hosts")
+	}
+
+	hosts, err := gce.getInstancesByNames([]string{hostName})
+	if err != nil {
+		return err
+	}
+
+	loadBalancerName := cloudprovider.GetLoadBalancerName(apiService)
+	ports := apiService.Spec.Ports
+	portStr := []string{}
+	for _, p := range apiService.Spec.Ports {
+		portStr = append(portStr, fmt.Sprintf("%s/%d", p.Protocol, p.Port))
+	}
+
+	serviceName := types.NamespacedName{Namespace: apiService.Namespace, Name: apiService.Name}
+	glog.V(2).Infof("EnsureFirewall(%v, %v, %v, %v, %v)", loadBalancerName, gce.region, portStr, hosts, serviceName)
+
+	// Deal with the firewall next. The reason we do this here rather than last
+	// is because the forwarding rule is used as the indicator that the load
+	// balancer is fully created - it's what getLoadBalancer checks for.
+	// Check if user specified the allow source range
+	sourceRanges, err := apiservice.GetLoadBalancerSourceRanges(apiService)
+	if err != nil {
+		return err
+	}
+	glog.V(6).Infof("EnsureFirewall = %v, sourceRanges = %v", loadBalancerName, sourceRanges)
+
+	firewallExists, firewallNeedsUpdate, err := gce.firewallNeedsUpdate(loadBalancerName, serviceName.String(), gce.region, "", ports, sourceRanges)
+	if err != nil {
+		return err
+	}
+	glog.V(6).Infof("EnsureFirewall = %v, firewallExists = %v, firewallNeedsUpdate = %v", loadBalancerName, firewallExists, firewallNeedsUpdate)
+
+	if firewallNeedsUpdate {
+		desc := makeFirewallDescription(serviceName.String(), "")
+		glog.V(6).Infof("EnsureFirewall = %v, desc = %v", loadBalancerName, desc)
+
+		// Unlike forwarding rules and target pools, firewalls can be updated
+		// without needing to be deleted and recreated.
+		if firewallExists {
+			if err := gce.updateFirewall(loadBalancerName, gce.region, desc, sourceRanges, ports, hosts); err != nil {
+				return err
+			}
+			glog.V(4).Infof("EnsureFirewall(%v(%v)): updated firewall", loadBalancerName, serviceName)
+		} else {
+			if err := gce.createFirewall(loadBalancerName, gce.region, desc, sourceRanges, ports, hosts); err != nil {
+				return err
+			}
+			glog.V(4).Infof("EnsureFirewall(%v(%v)): created firewall", loadBalancerName, serviceName)
+		}
+	}
+
+	return nil
+}
+
 // Passing nil for requested IP is perfectly fine - it just means that no specific
 // IP is being requested.
 // Returns whether the forwarding rule exists, whether it needs to be updated,
@@ -1032,6 +1102,9 @@ func makeFirewallName(name string) string {
 }
 
 func makeFirewallDescription(serviceName, ipAddress string) string {
+	if ipAddress == "" {
+		return fmt.Sprintf(`{"kubernetes.io/service-name":"%s"}`, serviceName)
+	}
 	return fmt.Sprintf(`{"kubernetes.io/service-name":"%s", "kubernetes.io/service-ip":"%s"}`,
 		serviceName, ipAddress)
 }
@@ -1434,6 +1507,21 @@ func (gce *GCECloud) EnsureLoadBalancerDeleted(clusterName string, service *api.
 			}
 			return nil
 		},
+	)
+	if errs != nil {
+		return utilerrors.Flatten(errs)
+	}
+	return nil
+}
+
+// EnsureFirewallDeleted is an implementation of Firewall.EnsureFirewallDeleted.
+func (gce *GCECloud) EnsureFirewallDeleted(service *api.Service) error {
+	loadBalancerName := cloudprovider.GetLoadBalancerName(service)
+	glog.V(2).Infof("EnsureFirewallDeleted(%v, %v, %v, %v)", service.Namespace, service.Name, loadBalancerName,
+		gce.region)
+
+	errs := utilerrors.AggregateGoroutines(
+		func() error { return gce.deleteFirewall(loadBalancerName, gce.region) },
 	)
 	if errs != nil {
 		return utilerrors.Flatten(errs)
@@ -2727,7 +2815,7 @@ func (gce *GCECloud) getDiskByNameUnknownZone(diskName string) (*gceDisk, error)
 	// Note: this is the gotcha right now with GCE PD support:
 	// disk names are not unique per-region.
 	// (I can create two volumes with name "myvol" in e.g. us-central1-b & us-central1-f)
-	// For now, this is simply undefined behvaiour.
+	// For now, this is simply undefined behaviour.
 	//
 	// In future, we will have to require users to qualify their disk
 	// "us-central1-a/mydisk".  We could do this for them as part of

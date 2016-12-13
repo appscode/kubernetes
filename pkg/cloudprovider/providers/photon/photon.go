@@ -420,6 +420,11 @@ func (pc *PCCloud) ProviderName() string {
 	return ProviderName
 }
 
+// Firewall returns an implementation of Firewall for Photon Controller.
+func (pc *PCCloud) Firewall() (cloudprovider.Firewall, bool) {
+	return nil, false
+}
+
 // LoadBalancer returns an implementation of LoadBalancer for Photon Controller.
 func (pc *PCCloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	return nil, false
