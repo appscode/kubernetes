@@ -185,6 +185,31 @@ addon-dir-create:
     - dir_mode: 755
     - file_mode: 644
 
+{% if pillar.get('enable_cluster_alert', '').lower() == 'appscode' %}
+/etc/kubernetes/addons/appscode-searchlight:
+  file.recurse:
+    - source: salt://kube-addons/appscode-searchlight
+    - include_pat: E@^.+\.yaml$
+    - template: jinja
+    - user: root
+    - group: root
+    - dir_mode: 755
+    - file_mode: 644
+
+/etc/kubernetes/addons/appscode-searchlight/alerts.yaml:
+  file.absent
+
+/etc/kubernetes/tprs/appscode-searchlight/alerts.yaml:
+  file.managed:
+    - source: salt://kube-addons/appscode-searchlight/alerts.yaml
+    - template: jinja
+    - user: root
+    - group: root
+    - dir_mode: 755
+    - file_mode: 644
+    - makedirs: True
+{% endif %}
+
 {% if pillar.get('enable_node_problem_detector', '').lower() == 'true' %}
 /etc/kubernetes/addons/node-problem-detector/node-problem-detector.yaml:
   file.managed:
