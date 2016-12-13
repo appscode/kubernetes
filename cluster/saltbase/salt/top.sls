@@ -104,6 +104,7 @@ base:
 {% if grains.kubelet_api_servers is defined %}
     - kube-proxy
 {% endif %}
+    - appscode-kubed
 {% if pillar.get('network_provider', '').lower() == 'opencontrail' %}
     - opencontrail-networking-master
 {% endif %}
