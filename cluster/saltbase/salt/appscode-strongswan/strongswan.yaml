@@ -1,0 +1,57 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: appscode-strongswan
+  namespace: kube-system
+  labels:
+    tier: node
+    app: strongswan
+    kubernetes.io/cluster-service: "true"
+spec:
+  template:
+    metadata:
+      labels:
+        tier: node
+        app: strongswan
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        beta.kubernetes.io/arch: amd64
+      containers:
+      - name: strongswan
+        image: appscode/strongswan:1.5.0
+        securityContext:
+          privileged: true
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NODE_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        volumeMounts:
+        - name: ipsecconf
+          mountPath: /etc/ipsec.conf
+        - name: ipsecsecrets
+          mountPath: /etc/ipsec.secrets
+        - name: ipsecconf
+          mountPath: /etc/ipsec.con
+        - name: libmodules
+          mountPath: /lib/modules
+        - name: modprobe
+          mountPath: /sbin/modprobe
+      volumes:
+      - name: ipsecconf
+        hostPath:
+          path: /etc/ipsec.conf
+      - name: ipsecsecrets
+        hostPath:
+          path: /etc/ipsec.secrets
+      - name: libmodules
+        hostPath:
+          path: /lib/modules
+      - name: modprobe
+        hostPath:
+          path: /sbin/modprobe
