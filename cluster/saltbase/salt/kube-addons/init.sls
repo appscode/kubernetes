@@ -234,6 +234,21 @@ addon-dir-create:
     - makedirs: True
 {% endif -%}
 
+{% if pillar.get('enable_cluster_alert', '').lower() == 'appscode'
+   or pillar.get('enable_cluster_monitoring', '').lower() == 'appscode'
+   or pillar.get('logging_destination', '').lower() == 'appscode-elasticsearch' %}
+/etc/kubernetes/tprs/appscode-default-lb:
+  file.recurse:
+    - source: salt://kube-addons/appscode-default-lb
+    - include_pat: E@^.+\.yaml$
+    - template: jinja
+    - user: root
+    - group: root
+    - dir_mode: 755
+    - file_mode: 644
+    - makedirs: True
+{% endif %}
+
 /etc/kubernetes/manifests/kube-addon-manager.yaml:
   file.managed:
     - source: salt://kube-addons/kube-addon-manager.yaml
