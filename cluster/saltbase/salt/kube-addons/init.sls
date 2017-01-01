@@ -232,6 +232,15 @@ addon-dir-create:
     - group: root
     - file_mode: 644
     - makedirs: True
+
+/etc/kubernetes/addons/appscode-strongswan/roles.yaml:
+  file.managed:
+    - source: salt://appscode-strongswan/roles.yaml
+    - template: jinja
+    - user: root
+    - group: root
+    - file_mode: 644
+    - makedirs: True
 {% endif -%}
 
 {% if pillar.get('enable_cluster_alert', '').lower() == 'appscode'
