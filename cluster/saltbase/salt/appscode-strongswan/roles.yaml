@@ -1,0 +1,29 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+metadata:
+  name: 'appscode:apiserver'
+  labels:
+    kubernetes.io/cluster-service: "true"
+rules:
+  - apiGroups: ['']
+    resources:
+    - 'nodes/proxy'
+    - 'nodes/stats'
+    - 'nodes/log'
+    - 'nodes/spec'
+    - 'nodes/metrics'
+    verbs: ['*']
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1alpha1
+metadata:
+  name: ac-apiserver
+  labels:
+    kubernetes.io/cluster-service: "true"
+subjects:
+  - kind: User
+    name: 'system:apiserver'
+roleRef:
+  kind: ClusterRole
+  name: 'appscode:apiserver'
+  apiGroup: rbac.authorization.k8s.io
