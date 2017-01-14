@@ -48,7 +48,7 @@ spec:
     spec:
       containers:
       - name: kubedns
-        image: gcr.io/google_containers/kubedns-amd64:1.9
+        image: gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.11.0
         resources:
           # TODO: Set memory limits when we've profiled the container for large
           # clusters, then set request = limit to keep this container in
