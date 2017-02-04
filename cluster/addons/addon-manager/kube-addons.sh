@@ -279,6 +279,38 @@ EOF
   fi
 }
 
+# $1 filename of tpr to start.
+# $2 count of tries to start the tpr.
+# $3 delay in seconds between two consecutive tries
+function start_tpr() {
+  local -r tpr_filename=$1;
+  local -r tries=$2;
+  local -r delay=$3;
+
+  local -r tpr_def=$(envsubst < ${tpr_filename})
+  create_tpr_from_string "$tpr_def" "${tries}" "${delay}" "${tpr_filename}"
+}
+
+# $1 string with json or yaml.
+# $2 count of tries to start the tpr.
+# $3 delay in seconds between two consecutive tries
+# $4 name of this object to use when logging about it.
+function create_tpr_from_string() {
+  local -r config_string=$1;
+  local tries=$2;
+  local -r delay=$3;
+  local -r config_name=$4;
+  while [ ${tries} -gt 0 ]; do
+    echo "${config_string}" | ${KUBECTL} ${KUBECTL_OPTS} create -f - && \
+      log INFO "== Successfully started ${config_name} at $(date -Is)" && \
+      return 0;
+    let tries=tries-1;
+    log WRN "== Failed to start ${config_name} at $(date -Is). ${tries} tries remaining. =="
+    sleep ${delay};
+  done
+  return 1;
+}
+
 # $1 filename of addon to start.
 # $2 count of tries to start the addon.
 # $3 delay in seconds between two consecutive tries
@@ -403,6 +435,12 @@ start_addon /opt/thirdparty.yaml 100 10 "" &
 
 # Create secrets used by appscode addons: icinga, influxdb & daemon
 create_appscode_secrets
+
+# Create tpr objects if defined before any other addon services.
+for obj in $(find /etc/kubernetes/tprs \( -name \*.yaml -o -name \*.json \)); do
+  start_tpr "${obj}" 100 10 &
+  log INFO "++ obj ${obj} is created ++"
+done
 
 # Fake the "kubectl.kubernetes.io/last-applied-configuration" annotation on old resources
 # in order to clean them up by `kubectl apply --prune`.
