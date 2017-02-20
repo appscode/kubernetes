@@ -12,6 +12,9 @@ base:
 
   'roles:kubernetes-pool':
     - match: grain
+{% if grains['cloud'] is defined and not grains.cloud in [ 'gce', 'gke' ] %}
+    - kube-master-dns
+{% endif %}
     - docker
 {% if pillar.get('network_policy_provider', '').lower() == 'calico' %}
     - cni
@@ -42,6 +45,9 @@ base:
 
   'roles:kubernetes-master':
     - match: grain
+{% if grains['cloud'] is defined and not grains.cloud in [ 'gce', 'gke' ] %}
+    - kube-master-dns
+{% endif %}
     - etcd
 {% if pillar.get('network_provider', '').lower() == 'kubenet' %}
     - cni
