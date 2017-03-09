@@ -40,7 +40,6 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/predicates"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/api/validation"
-
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
@@ -84,6 +83,7 @@ type ConfigFactory struct {
 	pvcPopulator          cache.ControllerInterface
 	servicePopulator      *cache.Controller
 	controllerPopulator   *cache.Controller
+	volumeDecorator       *volumeDecorator
 
 	schedulerCache schedulercache.Cache
 
@@ -186,6 +186,12 @@ func NewConfigFactory(client clientset.Interface, schedulerName string, hardPodA
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
 
+	c.volumeDecorator = &volumeDecorator{
+		Client:    c.Client,
+		PVLister:  c.PVLister,
+		PVCLister: c.PVCLister,
+	}
+
 	return c
 }
 
@@ -199,6 +205,12 @@ func (c *ConfigFactory) addPodToCache(obj interface{}) {
 
 	if err := c.schedulerCache.AddPod(pod); err != nil {
 		glog.Errorf("scheduler cache AddPod failed: %v", err)
+	}
+
+	if pod.Spec.NodeName != "" && c.responsibleForPod(pod) {
+		if err := c.volumeDecorator.EndTx(pod); err != nil {
+			glog.Errorf("Adding NodeName label to PV failed: %v", err)
+		}
 	}
 }
 
