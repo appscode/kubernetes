@@ -38,6 +38,11 @@ type PodConditionUpdater interface {
 	Update(pod *api.Pod, podCondition *api.PodCondition) error
 }
 
+type VolumeDecorator interface {
+	BeginTx(pod *api.Pod) error
+	EndTx(pod *api.Pod) error
+}
+
 // Scheduler watches for new unscheduled pods. It attempts to find
 // nodes that they fit on and writes bindings back to the api server.
 type Scheduler struct {
@@ -55,6 +60,9 @@ type Config struct {
 	// with scheduling, PodScheduled condition will be updated in apiserver in /bind
 	// handler so that binding and setting PodCondition it is atomic.
 	PodConditionUpdater PodConditionUpdater
+	// VolumeDecorator is used to decorate hostPath PVs with PodSpec.NodeName.
+	// This follows a 2-phase update process to apply nodeName label.
+	VolumeDecorator VolumeDecorator
 
 	// NextPod should be a function that blocks until the next pod
 	// is available. We don't use a channel for this, because scheduling
@@ -112,6 +120,8 @@ func (s *Scheduler) scheduleOne() {
 	// immediately.
 	assumed := *pod
 	assumed.Spec.NodeName = dest
+	s.config.VolumeDecorator.BeginTx(assumed)
+
 	if err := s.config.SchedulerCache.AssumePod(&assumed); err != nil {
 		glog.Errorf("scheduler cache AssumePod failed: %v", err)
 		// TODO: This means that a given pod is already in cache (which means it

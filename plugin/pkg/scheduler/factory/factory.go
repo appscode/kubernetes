@@ -386,6 +386,11 @@ func (f *ConfigFactory) CreateFromKeys(predicateKeys, priorityKeys sets.String, 
 		Algorithm:           algo,
 		Binder:              &binder{f.Client},
 		PodConditionUpdater: &podConditionUpdater{f.Client},
+		VolumeDecorator: &volumeDecorator{
+			Client:    f.Client,
+			PVLister:  f.PVLister,
+			PVCLister: f.PVCLister,
+		},
 		NextPod: func() *api.Pod {
 			return f.getNextPod()
 		},
@@ -661,6 +666,100 @@ func (p *podConditionUpdater) Update(pod *api.Pod, condition *api.PodCondition) 
 	if api.UpdatePodCondition(&pod.Status, condition) {
 		_, err := p.Client.Core().Pods(pod.Namespace).UpdateStatus(pod)
 		return err
+	}
+	return nil
+}
+
+type volumeDecorator struct {
+	Client clientset.Interface
+	PVLister *cache.StoreToPVFetcher
+	PVCLister *cache.StoreToPersistentVolumeClaimLister
+}
+
+func (d *volumeDecorator) BeginTx(pod *api.Pod) error {
+	for _, v := range pod.Spec.Volumes {
+		if v.PersistentVolumeClaim != nil && !v.PersistentVolumeClaim.ReadOnly {
+			pvcObj, exists, err := d.PVCLister.Indexer.GetByKey(pod.Namespace + "/" + v.PersistentVolumeClaim.ClaimName)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				return errors.NewNotFound(api.Resource("persistentvolumeclaim"), v.PersistentVolumeClaim.ClaimName)
+			}
+			pvc := pvcObj.(*api.PersistentVolumeClaim)
+			if pvc.Status.Phase != api.ClaimBound {
+				continue
+			}
+
+			pvObj, exists, err := d.PVLister.GetByKey(pvc.Spec.VolumeName)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				return errors.NewNotFound(api.Resource("persistentvolume"), pvc.Spec.VolumeName)
+			}
+			pv := pvObj.(*api.PersistentVolume)
+			if pv.Spec.HostPath == nil {
+				continue
+			}
+			// Do we need to recheck that PV is connected to the same PVC
+
+			pv.Labels["scheduler.alpha.appscode.com/beginScheduling"] = ""
+
+			glog.V(3).Infof("Starting to decorate PV %v", pv.Name)
+			err = d.Client.Core().RESTClient().Put().Resource("persistentvolumes").Name(pv.Name).Body(pv).Do().Error()
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (d *volumeDecorator) EndTx(pod *api.Pod) error {
+	if pod.Spec.NodeName == "" {
+		// Should not happen
+		return nil
+	}
+	for _, v := range pod.Spec.Volumes {
+		if v.PersistentVolumeClaim != nil && !v.PersistentVolumeClaim.ReadOnly {
+			pvcObj, exists, err := d.PVCLister.Indexer.GetByKey(pod.Namespace + "/" + v.PersistentVolumeClaim.ClaimName)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				return errors.NewNotFound(api.Resource("persistentvolumeclaim"), v.PersistentVolumeClaim.ClaimName)
+			}
+			pvc := pvcObj.(*api.PersistentVolumeClaim)
+			if pvc.Status.Phase != api.ClaimBound {
+				continue
+			}
+
+			pvObj, exists, err := d.PVLister.GetByKey(pvc.Spec.VolumeName)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				return errors.NewNotFound(api.Resource("persistentvolume"), pvc.Spec.VolumeName)
+			}
+			pv := pvObj.(*api.PersistentVolume)
+			if pv.Spec.HostPath == nil {
+				continue
+			}
+			// Do we need to recheck that PV is connected to the same PVC
+
+			_, exists = pv.Labels["scheduler.alpha.appscode.com/beginScheduling"]
+			if exists {
+				delete(pv.Labels, "scheduler.alpha.appscode.com/nodeName")
+				pv.Labels["scheduler.alpha.appscode.com/nodeName"] = pod.Spec.NodeName
+
+				glog.V(3).Infof("Ending decoration of PV %v", pv.Name)
+				err = d.Client.Core().RESTClient().Put().Resource("persistentvolumes").Name(pv.Name).Body(pv).Do().Error()
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 	return nil
 }
