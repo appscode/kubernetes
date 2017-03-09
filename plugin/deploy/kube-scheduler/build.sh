@@ -16,7 +16,9 @@ REPO_ROOT=$GOPATH/src/k8s.io/kubernetes
 IMG=hostpath-scheduler
 
 build() {
-    pushd $REPO_ROOT/plugin/deploy/kube-scheduler
+    pushd $REPO_ROOT
+    make WHAT=./plugin/cmd/kube-scheduler
+    cd $REPO_ROOT/plugin/deploy/kube-scheduler
     tag=$(git describe --tags --always --dirty)
     cp $REPO_ROOT/_output/local/bin/linux/amd64/kube-scheduler .
     chmod +x kube-scheduler
