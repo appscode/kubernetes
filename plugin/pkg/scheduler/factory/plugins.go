@@ -44,6 +44,8 @@ type PluginFactoryArgs struct {
 	PVCInfo                        predicates.PersistentVolumeClaimInfo
 	HardPodAffinitySymmetricWeight int
 	FailureDomains                 []string
+	PVIndexer                      algorithm.Indexer
+	PVCIndexer                     algorithm.Indexer
 }
 
 // MetadataProducerFactory produces MetadataProducer from the given args.

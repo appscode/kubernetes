@@ -120,7 +120,7 @@ func (s *Scheduler) scheduleOne() {
 	// immediately.
 	assumed := *pod
 	assumed.Spec.NodeName = dest
-	s.config.VolumeDecorator.BeginTx(assumed)
+	s.config.VolumeDecorator.BeginTx(&assumed)
 
 	if err := s.config.SchedulerCache.AssumePod(&assumed); err != nil {
 		glog.Errorf("scheduler cache AssumePod failed: %v", err)

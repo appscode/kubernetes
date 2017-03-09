@@ -184,3 +184,7 @@ func (f FakeReplicaSetLister) GetPodReplicaSets(pod *api.Pod) (rss []*extensions
 
 	return
 }
+
+type Indexer interface {
+	GetByKey(key string) (item interface{}, exists bool, err error)
+}

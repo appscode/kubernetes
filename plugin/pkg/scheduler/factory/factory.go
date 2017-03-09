@@ -454,6 +454,8 @@ func (f *ConfigFactory) getPluginArgs() (*PluginFactoryArgs, error) {
 		PVCInfo:    &predicates.CachedPersistentVolumeClaimInfo{StoreToPersistentVolumeClaimLister: f.PVCLister},
 		HardPodAffinitySymmetricWeight: f.HardPodAffinitySymmetricWeight,
 		FailureDomains:                 sets.NewString(failureDomainArgs...).List(),
+		PVIndexer: f.PVLister,
+		PVCIndexer: f.PVCLister.Indexer,
 	}, nil
 }
 

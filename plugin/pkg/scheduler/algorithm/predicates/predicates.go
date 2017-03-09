@@ -34,6 +34,7 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
 	priorityutil "k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/priorities/util"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
+	"k8s.io/kubernetes/pkg/api/errors"
 )
 
 // predicatePrecomputations: Helper types/variables...
@@ -626,6 +627,61 @@ func PodFitsHost(pod *api.Pod, meta interface{}, nodeInfo *schedulercache.NodeIn
 		return true, nil, nil
 	}
 	return false, []algorithm.PredicateFailureReason{ErrPodNotMatchHostName}, nil
+}
+
+type PVLabelChecker struct {
+	pvIndexer  algorithm.Indexer
+	pvcIndexer algorithm.Indexer
+}
+
+func NewPVLabelPredicate(pvLister algorithm.Indexer, pvcLister algorithm.Indexer) algorithm.FitPredicate {
+	labelChecker := &PVLabelChecker{
+		pvIndexer: pvLister,
+		pvcIndexer : pvcLister,
+	}
+	return labelChecker.CheckPVLabelPresence
+}
+
+func (d *PVLabelChecker) CheckPVLabelPresence(pod *api.Pod, meta interface{}, nodeInfo *schedulercache.NodeInfo) (bool, []algorithm.PredicateFailureReason, error) {
+	nodeName := pod.Spec.NodeName
+	for _, v := range pod.Spec.Volumes {
+		if v.PersistentVolumeClaim != nil && !v.PersistentVolumeClaim.ReadOnly {
+			pvcObj, exists, err := d.pvcIndexer.GetByKey(pod.Namespace + "/" + v.PersistentVolumeClaim.ClaimName)
+			if err != nil {
+				return false, nil, err
+			}
+			if !exists {
+				return false, nil, errors.NewNotFound(api.Resource("persistentvolumeclaim"), v.PersistentVolumeClaim.ClaimName)
+			}
+			pvc := pvcObj.(*api.PersistentVolumeClaim)
+			if pvc.Status.Phase != api.ClaimBound {
+				continue
+			}
+
+			pvObj, exists, err := d.pvIndexer.GetByKey(pvc.Spec.VolumeName)
+			if err != nil {
+				return false, nil, err
+			}
+			if !exists {
+				return false, nil, errors.NewNotFound(api.Resource("persistentvolume"), pvc.Spec.VolumeName)
+			}
+			pv := pvObj.(*api.PersistentVolume)
+			if pv.Spec.HostPath == nil {
+				continue
+			}
+			// Do we need to recheck that PV is connected to the same PVC
+
+			nn, exists := pv.Labels["scheduler.alpha.appscode.com/nodeName"]
+			if exists {
+				if nodeName == "" {
+					nodeName = nn
+				} else if nodeName != nn {
+					return false, nil, errors.NewConflict(api.Resource("pods"), pod.Name, fmt.Errorf("Mismatched node name expected %v, found %v", nodeName, nn))
+				}
+			}
+		}
+	}
+	return true, nil, nil
 }
 
 type NodeLabelChecker struct {

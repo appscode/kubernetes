@@ -158,6 +158,14 @@ func defaultPredicates() sets.String {
 
 		// Fit is determined by node disk pressure condition.
 		factory.RegisterFitPredicate("CheckNodeDiskPressure", predicates.CheckNodeDiskPressurePredicate),
+
+		// Fit is determined by PV label node name.
+		factory.RegisterFitPredicateFactory(
+			"MatchPVLabel",
+			func(args factory.PluginFactoryArgs) algorithm.FitPredicate {
+				return predicates.NewPVLabelPredicate(args.PVIndexer, args.PVCIndexer)
+			},
+		),
 	)
 }
 
