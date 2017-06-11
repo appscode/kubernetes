@@ -1,0 +1,45 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: voyager-operator
+    kubernetes.io/cluster-service: "true"
+  name: voyager-operator
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: voyager-operator
+  template:
+    metadata:
+      labels:
+        app: voyager-operator
+    spec:
+      containers:
+      - name: voyager-operator
+        args:
+        - run
+        - --cloud-provider={{ grains.get('cloud', '') }}
+        - --v=3
+        image: appscode/voyager:1.5.6
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: voyager-operator
+    kubernetes.io/cluster-service: "true"
+  name: voyager-operator
+  namespace: kube-system
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: web
+  selector:
+    app: voyager-operator

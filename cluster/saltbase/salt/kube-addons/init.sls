@@ -175,6 +175,16 @@ addon-dir-create:
     - file_mode: 644
 {% endif %}
 
+/etc/kubernetes/addons/appscode-voyager:
+  file.recurse:
+    - source: salt://kube-addons/appscode-voyager
+    - include_pat: E@^.+\.yaml$
+    - template: jinja
+    - user: root
+    - group: root
+    - dir_mode: 755
+    - file_mode: 644
+
 {% if pillar.get('enable_node_problem_detector', '').lower() == 'true' %}
 /etc/kubernetes/addons/node-problem-detector/node-problem-detector.yaml:
   file.managed:
