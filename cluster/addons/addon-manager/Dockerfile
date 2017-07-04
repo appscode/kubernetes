@@ -14,6 +14,10 @@
 
 FROM BASEIMAGE
 
+INSTALL_TOOLS
+
+RUN pip install pyyaml
+
 ADD kube-addons.sh /opt/
 ADD namespace.yaml /opt/
 ADD kubectl /usr/local/bin/

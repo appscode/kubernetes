@@ -1,0 +1,66 @@
+{
+  "apiVersion": "appscode.com/v1beta1",
+  "kind": "Ingress",
+  "metadata": {
+    "name": "default-lb",
+    "namespace": "kube-system",
+    "annotations": {
+      "ingress.appscode.com/type": "HostPort",
+      "ingress.appscode.com/node-selector": "{\"kubernetes.io/role\":\"master\"}"
+    }
+  },
+  "spec": {
+    "rules": [
+      {
+        "host": "api.{{ pillar['instance_prefix'] }}-{{ pillar['appscode_ns'] }}.{{ pillar['appscode_cluster_root_domain'] }}",
+        "http": {
+          "paths": [
+            {
+              "path": "/icingaweb2",
+              "backend": {
+                "serviceName": "searchlight-icinga.kube-system",
+                "servicePort": "80"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "host": "api.{{ pillar['instance_prefix'] }}-{{ pillar['appscode_ns'] }}.{{ pillar['appscode_cluster_root_domain'] }}",
+        "http": {
+          "paths": [
+            {
+              "path": "/kibana",
+              "backend": {
+                "serviceName": "kibana-logging.kube-system",
+                "servicePort": "5601"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "host": "api.{{ pillar['instance_prefix'] }}-{{ pillar['appscode_ns'] }}.{{ pillar['appscode_cluster_root_domain'] }}",
+        "http": {
+          "paths": [
+            {
+              "path": "/grafana",
+              "backend": {
+                "serviceName": "grafana.kube-system",
+                "servicePort": "80"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "tls": [
+      {
+        "hosts": [
+          "api.{{ pillar['instance_prefix'] }}-{{ pillar['appscode_ns'] }}.{{ pillar['appscode_cluster_root_domain'] }}"
+        ],
+        "secretName": "appscode-default-lb-cert"
+      }
+    ]
+  }
+}
