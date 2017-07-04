@@ -76,10 +76,12 @@ base:
     - logrotate
 {% endif %}
     - kube-addons
-{% if grains['cloud'] is defined and grains['cloud'] in [ 'vagrant', 'gce', 'aws', 'photon-controller', 'openstack', 'azure-legacy'] %}
+{% if grains['cloud'] is defined and grains['cloud'] == 'azure-legacy' %}
+    - openvpn
+    - nginx
+{% endif %}
     - docker
     - kubelet
-{% endif %}
 {% if grains.kubelet_api_servers is defined %}
     - kube-proxy
 {% endif %}
