@@ -15,6 +15,8 @@
   {% set api_servers = "--api-servers=https://" + ips[0][0] -%}
 {% endif -%}
 
+{% set api_servers = api_servers + ":6443" -%}
+
 {% set master_kubelet_args = "" %}
 
 {% set debugging_handlers = "--enable-debugging-handlers=true" -%}
@@ -25,7 +27,7 @@
     # Unless given a specific directive, disable registration for the kubelet
     # running on the master.
     {% if grains.kubelet_api_servers is defined -%}
-      {% set api_servers = "--api-servers=https://" + grains.kubelet_api_servers -%}
+      {% set api_servers = "--api-servers=https://" + grains.kubelet_api_servers + ":6443" -%}
       {% set master_kubelet_args = master_kubelet_args + "--register-schedulable=false" -%}
     {% else -%}
       {% set api_servers = "" -%}
