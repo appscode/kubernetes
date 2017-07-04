@@ -27,6 +27,8 @@ base:
     - cni
 {% elif pillar.get('network_provider', '').lower() == 'cni' %}
     - cni
+{% elif pillar.get('network_provider', '').lower() == 'kube-flannel' %}
+    - cni
 {% endif %}
     - helpers
     - kube-client-tools
@@ -60,6 +62,8 @@ base:
 {% if pillar.get('network_provider', '').lower() == 'kubenet' %}
     - cni
 {% elif pillar.get('network_provider', '').lower() == 'cni' %}
+    - cni
+{% elif pillar.get('network_provider', '').lower() == 'kube-flannel' %}
     - cni
 {% endif %}
 {% if pillar.get('enable_l7_loadbalancing', '').lower() == 'glbc' %}
