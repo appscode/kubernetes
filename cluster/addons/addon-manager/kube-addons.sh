@@ -340,6 +340,9 @@ for obj in $(find /etc/kubernetes/admission-controls \( -name \*.yaml -o -name \
   log INFO "++ obj ${obj} is created ++"
 done
 
+# Activate Extended Ingress to allow TCP loadbalancing
+start_addon /opt/thirdparty.yaml 100 10 "" &
+
 # Create secrets used by appscode addons: icinga, influxdb & daemon
 create_appscode_secrets
 

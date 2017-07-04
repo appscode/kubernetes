@@ -1,0 +1,42 @@
+{% set es_endpoint = "" -%}
+{% if pillar.get('enable_node_logging', '').lower() == 'true'
+   and pillar.get('logging_destination', '').lower() == 'appscode-elasticsearch'
+   and pillar.get('enable_cluster_logging', '').lower() == 'true' %}
+   {% set es_endpoint = "--es-endpoint=http://elasticsearch-logging.kube-system:9200" -%}
+{% endif %}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: appscode-kubed
+  namespace: kube-system
+  annotations:
+    scheduler.alpha.kubernetes.io/critical-pod: ''
+    scheduler.alpha.kubernetes.io/tolerations: '[{"key":"CriticalAddonsOnly", "operator":"Exists"}]'
+spec:
+  hostNetwork: true
+  containers:
+    - name: kubed
+      image: appscode/kubed:1.5.3
+      command:
+        - /bin/sh
+        - -c
+        - /kubed run --master=http://127.0.0.1:8080 --api-endpoint={{ appscode_api_grpc_endpoint }} --cluster-name={{ cluster_name }} {{ es_endpoint }} --v=3 1>>/var/log/appscode-kubed.log 2>&1
+      env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      volumeMounts:
+        - mountPath: /var/run/secrets/appscode
+          name: apitoken
+          readOnly: true
+        - mountPath: /var/log
+          name: varlog
+          readOnly: false
+  volumes:
+    - name: apitoken
+      hostPath:
+        path: /var/run/secrets/appscode
+    - name: varlog
+      hostPath:
+        path: /var/log

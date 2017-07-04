@@ -18,4 +18,6 @@ ADD kube-addons.sh /opt/
 ADD namespace.yaml /opt/
 ADD kubectl /usr/local/bin/
 
+ADD thirdparty.yaml /opt/
+
 CMD ["/opt/kube-addons.sh"]
