@@ -213,6 +213,21 @@ EOF
   if [ "$ENABLE_CLUSTER_ALERT" = "appscode" ]; then
     create_icinga_secret
   fi
+
+  if [ -n "$DEFAULT_LB_CERT" ] && [ -n "$DEFAULT_LB_KEY" ]; then
+    read -r -d '' lbsecretyaml <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: appscode-default-lb-cert
+  namespace: ${SYSTEM_NAMESPACE}
+type: Opaque
+data:
+  tls.crt: ${DEFAULT_LB_CERT}
+  tls.key: ${DEFAULT_LB_KEY}
+EOF
+    create_resource_from_string "${lbsecretyaml}" 100 10 "Secret-for-default-lb-cert" "${SYSTEM_NAMESPACE}" &
+  fi
 }
 
 # $1 filename of addon to start.
