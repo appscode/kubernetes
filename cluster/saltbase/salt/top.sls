@@ -36,6 +36,11 @@ base:
 {% else %}
     - kube-proxy
 {% endif %}
+{% if pillar.get('enable_node_logging', '').lower() == 'true' and pillar['logging_destination'] is defined %}
+  {% if pillar['logging_destination'] in ['elasticsearch', 'appscode-elasticsearch'] %}
+    - fluentd-es
+  {% endif %}
+{% endif %}
 {% if pillar.get('enable_cluster_registry', '').lower() == 'true' %}
     - kube-registry-proxy
 {% endif %}
@@ -71,6 +76,11 @@ base:
     - kube-master-addons
     - kube-node-unpacker
     - kube-admission-controls
+{% if pillar.get('enable_node_logging', '').lower() == 'true' and pillar['logging_destination'] is defined %}
+  {% if pillar['logging_destination'] in ['elasticsearch', 'appscode-elasticsearch'] %}
+    - fluentd-es
+  {% endif %}
+{% endif %}
 {% if grains['cloud'] is defined and grains['cloud'] != 'vagrant' %}
     - logrotate
 {% endif %}
