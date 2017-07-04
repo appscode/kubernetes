@@ -80,6 +80,106 @@ function log() {
   esac
 }
 
+# $1 command to execute.
+# $2 count of tries to execute the command.
+# $3 delay in seconds between two consecutive tries
+function run_until_success() {
+  local -r command=$1
+  local tries=$2
+  local -r delay=$3
+  local -r command_name=$1
+  while [ ${tries} -gt 0 ]; do
+    log DBG "executing: '$command'"
+    # let's give the command as an argument to bash -c, so that we can use
+    # && and || inside the command itself
+    /bin/bash -c "${command}" && \
+      log DB3 "== Successfully executed ${command_name} at $(date -Is) ==" && \
+      return 0
+    let tries=tries-1
+    log WRN "== Failed to execute ${command_name} at $(date -Is). ${tries} tries remaining. =="
+    sleep ${delay}
+  done
+  return 1
+}
+
+function create_appscode_secret() {
+  local -r secret=$1
+  local -r name=$2
+  local -r filename=$3
+  local -r namespace=$4
+  local -r safe_name=$(tr -s ':_' '--' <<< "${name}")
+
+  local -r secret_base64=$(echo "${secret}" | base64 -w0)
+  read -r -d '' secretyaml <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: appscode-${safe_name}
+  namespace: ${namespace}
+type: Opaque
+data:
+  ${filename}: ${secret_base64}
+EOF
+  create_resource_from_string "${secretyaml}" 100 10 "Secret-for-${safe_name}" "${namespace}" &
+}
+
+function create_icinga_secret() {
+  read -r -d '' env_file <<EOF
+ICINGA_WEB_HOST=127.0.0.1
+ICINGA_WEB_PORT=5432
+ICINGA_WEB_DB=icingawebdb
+ICINGA_WEB_USER=${APPSCODE_ICINGA_WEB_USER}
+ICINGA_WEB_PASSWORD=${APPSCODE_ICINGA_WEB_PASSWORD}
+ICINGA_IDO_HOST=127.0.0.1
+ICINGA_IDO_PORT=5432
+ICINGA_IDO_DB=icingaidodb
+ICINGA_IDO_USER=${APPSCODE_ICINGA_IDO_USER}
+ICINGA_IDO_PASSWORD=${APPSCODE_ICINGA_IDO_PASSWORD}
+ICINGA_API_USER=${APPSCODE_ICINGA_API_USER}
+ICINGA_API_PASSWORD=${APPSCODE_ICINGA_API_PASSWORD}
+ICINGA_ADDRESS=searchlight-icinga.kube-system
+EOF
+  mkdir -p /srv/icinga2/secrets
+  echo "${env_file}" > /srv/icinga2/secrets/.env
+
+  local -r name='icinga'
+  local -r safe_name=$(tr -s ':_' '--' <<< "${name}")
+
+  local -r env_file_base64=$(echo "${env_file}" | base64 -w0)
+  read -r -d '' secretyaml <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: searchlight-${safe_name}
+  namespace: ${SYSTEM_NAMESPACE}
+type: Opaque
+data:
+  .env: ${env_file_base64}
+  ca.crt: ${CA_CERT}
+  icinga.crt: ${DEFAULT_LB_CERT}
+  icinga.key: ${DEFAULT_LB_KEY}
+EOF
+  create_resource_from_string "${secretyaml}" 100 10 "Secret-for-${safe_name}" "${SYSTEM_NAMESPACE}" &
+}
+
+function create_appscode_secrets() {
+  if [ -n "$APPSCODE_NS" ] && [ -n "APPSCODE_API_TOKEN" ]; then
+    read -r -d '' apitoken <<EOF
+{
+  "namespace":"${APPSCODE_NS}",
+  "token":"${APPSCODE_API_TOKEN}"
+}
+EOF
+    mkdir -p /var/run/secrets/appscode
+    echo "${apitoken}" > /var/run/secrets/appscode/api-token
+    create_appscode_secret "${apitoken}" "api-token" "api-token" "${SYSTEM_NAMESPACE}"
+  fi
+
+  if [ "$ENABLE_CLUSTER_ALERT" = "appscode" ]; then
+    create_icinga_secret
+  fi
+}
+
 # $1 filename of addon to start.
 # $2 count of tries to start the addon.
 # $3 delay in seconds between two consecutive tries
@@ -205,7 +305,8 @@ for obj in $(find /etc/kubernetes/admission-controls \( -name \*.yaml -o -name \
   log INFO "++ obj ${obj} is created ++"
 done
 
-# TODO: The annotate and spin up parts should be removed after 1.6 is released.
+# Create secrets used by appscode addons: icinga, influxdb & daemon
+create_appscode_secrets
 
 # Fake the "kubectl.kubernetes.io/last-applied-configuration" annotation on old resources
 # in order to clean them up by `kubectl apply --prune`.
@@ -229,6 +330,7 @@ log INFO "== Wait for addons to be spinned up at $(date -Is) =="
 sleep ${ADDON_CHECK_INTERVAL_SEC}
 
 # Start the apply loop.
+
 # Check if the configuration has changed recently - in case the user
 # created/updated/deleted the files on the master.
 log INFO "== Entering periodical apply loop at $(date -Is) =="
