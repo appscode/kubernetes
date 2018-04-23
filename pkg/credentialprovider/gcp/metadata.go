@@ -121,7 +121,8 @@ func onGCEVM() bool {
 		glog.V(2).Infof("Error while reading product_name: %v", err)
 		return false
 	}
-	return strings.Contains(string(data), googleProductName)
+	name := strings.TrimSpace(string(data))
+	return name == "Google" || name == "Google Compute Engine"
 }
 
 // Enabled implements DockerConfigProvider for all of the Google implementations.
