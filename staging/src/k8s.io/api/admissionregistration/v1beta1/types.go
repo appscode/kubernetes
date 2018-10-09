@@ -286,8 +286,8 @@ type WebhookClientConfig struct {
 
 	// `caBundle` is a PEM encoded CA bundle which will be used to validate
 	// the webhook's server certificate.
-	// Required.
-	CABundle []byte `json:"caBundle" protobuf:"bytes,2,opt,name=caBundle"`
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty" protobuf:"bytes,2,opt,name=caBundle"`
 }
 
 // ServiceReference holds a reference to Service.legacy.k8s.io
