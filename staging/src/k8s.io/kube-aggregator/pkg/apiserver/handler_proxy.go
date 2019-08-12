@@ -18,7 +18,9 @@ package apiserver
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"sync/atomic"
 
@@ -140,11 +142,24 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	location.Path = req.URL.Path
 	location.RawQuery = req.URL.Query().Encode()
 
+	fmt.Println("rloc = ", rloc)
+	fmt.Println("location = ", location)
+
 	// WithContext creates a shallow clone of the request with the new context.
 	newReq := req.WithContext(context.Background())
 	newReq.Header = utilnet.CloneHeader(req.Header)
 	newReq.URL = location
 	newReq.Host = location.Host
+	newReq.Proto = "HTTP/1.1"
+	newReq.ProtoMajor = 1
+	newReq.ProtoMinor = 1
+
+	if b, err := httputil.DumpRequest(req, true); err == nil {
+		fmt.Println("xxxxxxxxxxxxxxxxxxx---REQ-------------", string(b))
+	}
+	if b, err := httputil.DumpRequest(newReq, true); err == nil {
+		fmt.Println("xxxxxxxxxxxxxxxxxxx---REQ-------------", string(b))
+	}
 
 	if handlingInfo.proxyRoundTripper == nil {
 		proxyError(w, req, "", http.StatusNotFound)

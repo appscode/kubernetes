@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
 	"strings"
@@ -230,10 +231,29 @@ func (h *UpgradeAwareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request
 	u2 := &url.URL{Scheme: h.Location.Scheme, Host: h.Location.Host}
 	fmt.Println("___ L 231:", u2.String(), "|__", newReq.URL.String())
 
+	if b, err := httputil.DumpRequest(req, true); err == nil {
+		fmt.Println("req:\n", string(b))
+	}
+	if b, err := httputil.DumpRequest(newReq, true); err == nil {
+		fmt.Println("newReq:\n", string(b))
+	}
+
 	proxy := httputil.NewSingleHostReverseProxy(u2)
-	proxy.Transport = h.Transport
+	proxy.Transport = http.DefaultTransport
 	proxy.FlushInterval = h.FlushInterval
-	proxy.ServeHTTP(w, newReq)
+
+	w2 := httptest.NewRecorder()
+	proxy.ServeHTTP(w2, newReq)
+
+	resp := w2.Result()
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	fmt.Println("[x]>>>", resp.StatusCode)
+	fmt.Println("[x]>>>", resp.Header.Get("Content-Type"))
+	fmt.Println("[x]>>>", string(body))
+
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
 }
 
 // tryUpgrade returns true if the request was handled.
